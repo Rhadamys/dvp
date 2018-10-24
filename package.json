@@ -1,0 +1,39 @@
+{
+  "scripts": {
+    "build": "webpack",
+    "dev": "webpack-dev-server --open --env.dev --history-api-fallback"
+  },
+  "devDependencies": {
+    "axios": "^0.18",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.0.0",
+    "babel-preset-env": "^1.7.0",
+    "brace": "^0.11.1",
+    "cross-env": "^5.1",
+    "css-loader": "^1.0.0",
+    "es6-promise": "^4.2.4",
+    "firebase": "^4.12.1",
+    "html-webpack-plugin": "^3.2.0",
+    "jquery": "^3.2",
+    "lodash": "^4.17.4",
+    "mini-css-extract-plugin": "^0.4.4",
+    "node-sass": "^4.9.4",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1",
+    "svg-url-loader": "^2.3.2",
+    "vue": "^2.5.7",
+    "vue-axios": "^2.1.4",
+    "vue-loader": "^14.2.2",
+    "vue-resource": "^1.5.0",
+    "vue-router": "^3.0.1",
+    "vue-style-loader": "^4.1.2",
+    "vue-template-compiler": "^2.5.16",
+    "webpack": "^4.21.0",
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "^3.1.8"
+  },
+  "dependencies": {
+    "ace-builds": "^1.4.1",
+    "vue-material": "^1.0.0-beta-10.2"
+  }
+}

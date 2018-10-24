@@ -1,0 +1,255 @@
+@import "~vue-material/dist/theme/engine";
+
+$primary: md-get-palette-color(blue, A700);
+$secondary: md-get-palette-color(blue, A200);
+$accent: md-get-palette-color(amber, 900);
+$prompt: md-get-palette-color(purple, 200);
+$warning: md-get-palette-color(yellow, 200);
+$error: md-get-palette-color(deeporange, 200);
+
+@include md-register-theme("default", (
+    primary: $primary,
+    accent: $accent,
+    theme: dark
+));
+
+@include md-register-theme("secondary", (
+    primary: $secondary,
+    accent: $accent,
+    theme: dark
+));
+
+@import "~vue-material/dist/theme/all";
+
+.md-app {
+    min-height: 100vh;
+    
+    &-scroller {
+        height: 50vh;
+    }
+
+    .container {
+        max-width: 100%;
+        height: 100%;
+        margin: 0 !important;
+        padding-top: 16px;
+        padding-bottom: 16px;
+
+        .md-layout {
+            &-item {
+                height: 100%;
+                margin-bottom: 16px;
+        
+                .md-card {
+                    height: 100%;
+                    margin: 0;
+                    display: flex;
+                    flex-direction: column;
+
+                    #ace-editor {
+                        font-size: 14px;
+                        height: 100%;
+                    }
+                }
+            }
+        }
+    }
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: transparent;
+    outline: none;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+    margin: 0;
+    z-index: 10;
+}
+
+$sliderSize: 16px;
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: $sliderSize;
+    height: $sliderSize;
+    border-radius: 50%; 
+    background: $accent;
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: $sliderSize;
+    height: $sliderSize;
+    border-radius: 50%;
+    background: $accent;
+    cursor: pointer;
+}
+
+.stepper {
+    display: flex;
+
+    .step {
+        flex-grow: 2;
+        height: 8px;
+        background-color: gray;
+    }
+
+    .first, .last {
+        flex-grow: 1 !important;
+    }
+
+    .prompt {
+        background-color: $prompt;
+    }
+
+    .warning {
+        background-color: $warning;
+    }
+
+    .error {
+        background-color: $error;
+    }
+    
+    input {
+        position: absolute;
+    }
+}
+
+.visual-panel {
+    .io {
+        margin-bottom: 8px !important;
+        height: 60% !important;
+
+        .console {
+            background: black !important;
+            color: white !important;
+            font-family: monospace;
+            width: 100%;
+            max-width: 100%;
+            height: 100%;
+            padding-top: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+            overflow: auto;
+    
+            div {
+                width: 100%;
+            }
+    
+            &-prompt {
+                display: flex;
+    
+                div {
+                    width: auto;
+                }
+    
+                input {
+                    background: none;
+                    color: white;
+                    font-family: monospace;
+                    white-space: pre;
+                    border: none;
+                    flex-grow: 1;
+                    margin-left: 0.5em;
+                    border-bottom: 2px solid $accent;
+                }
+    
+                input:focus{
+                    outline: none;
+                }
+            }
+        }
+    }
+
+    .canvas {
+        background-color: white !important;
+        width: 100%;
+        height: 40% !important;
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+    }
+}
+
+/** ACE editor customization **/
+.ace_fold {
+    background-image: url('./more.svg') !important;
+    background-color: transparent !important;
+    border: none !important;
+    margin: 0;
+    margin-left: 6px;
+}
+
+.gutter_error_line {
+    background-image: url('./error.svg') !important;
+    background-color: $error !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.error_line {
+    background-color: md-get-palette-color(deeporange, 100);
+    position: absolute;
+}
+
+.gutter_warning_line {
+    background-image: url('./warning.svg') !important;
+    background-color: $warning !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.warning_line {
+    background-color: md-get-palette-color(yellow, 100);
+    position: absolute;
+}
+
+.gutter_current_line {
+    background-image: url('./line.svg');
+    background-color: md-get-palette-color(lightgreen, 200) !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.current_line {
+    background-color: md-get-palette-color(lightgreen, 100);
+    position: absolute;
+}
+
+.gutter_next_line {
+    background-image: url('./line.svg');
+    background-color: md-get-palette-color(lightblue, 200) !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.next_line {
+    background-color: md-get-palette-color(lightblue, 100);
+    position: absolute;
+}
+
+.gutter_prompt_line {
+    background-image: url('./input.svg');
+    background-color: $prompt !important;
+    background-size: 16px;
+    background-position: 2px;
+}
+.prompt_line {
+    background-color: md-get-palette-color(purple, 100);
+    position: absolute;
+}
+
+.ace_scrollbar {
+    display: none !important;
+}
+
+.ace_tooltip {
+    background: white;
+    border-top: none;
+    border-right: none;
+    border-left: none;
+    border-image: initial;
+    border-bottom: 2px solid $accent;
+    box-shadow: rgb(187, 187, 187) 2px 2px 5px;
+    border-radius: 2px;
+}
