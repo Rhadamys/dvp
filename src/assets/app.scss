@@ -13,6 +13,11 @@ $error: md-get-palette-color(deeporange, 200);
     theme: dark
 ));
 
+@include md-register-theme("default-light", (
+    primary: $primary,
+    accent: $accent,
+));
+
 @include md-register-theme("secondary", (
     primary: $secondary,
     accent: $accent,
@@ -55,6 +60,46 @@ $error: md-get-palette-color(deeporange, 200);
         }
     }
 }
+                 
+.io {
+    background: black !important;
+    overflow: auto !important;
+
+    .console {
+        color: white !important;
+        font-family: monospace;
+        width: 100%;
+        height: auto;
+        padding: 20px;
+
+        div {
+            width: 100%;
+        }
+
+        &-prompt {
+            display: flex;
+
+            div {
+                width: auto;
+            }
+
+            input {
+                background: none;
+                color: white;
+                font-family: monospace;
+                white-space: pre;
+                border: none;
+                flex-grow: 1;
+                margin-left: 0.5em;
+                border-bottom: 2px solid $accent;
+            }
+
+            input:focus{
+                outline: none;
+            }
+        }
+    }
+}
 
 input[type="range"] {
     -webkit-appearance: none;
@@ -87,90 +132,44 @@ input[type="range"]::-moz-range-thumb {
     cursor: pointer;
 }
 
-.stepper {
-    display: flex;
+.editor {
+    .debugger-actions {
+        .play-btn {
+            color: md-get-palette-color(lightgreen, 400) !important;
+        }
 
-    .step {
-        flex-grow: 2;
-        height: 8px;
-        background-color: gray;
-    }
-
-    .first, .last {
-        flex-grow: 1 !important;
-    }
-
-    .prompt {
-        background-color: $prompt;
-    }
-
-    .warning {
-        background-color: $warning;
-    }
-
-    .error {
-        background-color: $error;
-    }
-    
-    input {
-        position: absolute;
-    }
-}
-
-.visual-panel {
-    .io {
-        margin-bottom: 8px !important;
-        height: 60% !important;
-
-        .console {
-            background: black !important;
-            color: white !important;
-            font-family: monospace;
-            width: 100%;
-            max-width: 100%;
-            height: 100%;
-            padding-top: 20px;
-            padding-left: 20px;
-            padding-right: 20px;
-            overflow: auto;
-    
-            div {
-                width: 100%;
-            }
-    
-            &-prompt {
-                display: flex;
-    
-                div {
-                    width: auto;
-                }
-    
-                input {
-                    background: none;
-                    color: white;
-                    font-family: monospace;
-                    white-space: pre;
-                    border: none;
-                    flex-grow: 1;
-                    margin-left: 0.5em;
-                    border-bottom: 2px solid $accent;
-                }
-    
-                input:focus{
-                    outline: none;
-                }
-            }
+        .pause-btn {
+            color: md-get-palette-color(orange, 400) !important;
         }
     }
 
-    .canvas {
-        background-color: white !important;
-        width: 100%;
-        height: 40% !important;
-
-        canvas {
-            width: 100%;
-            height: 100%;
+    .stepper {
+        display: flex;
+    
+        .step {
+            flex-grow: 2;
+            height: 8px;
+            background-color: gray;
+        }
+    
+        .first, .last {
+            flex-grow: 1 !important;
+        }
+    
+        .prompt {
+            background-color: $prompt;
+        }
+    
+        .warning {
+            background-color: $warning;
+        }
+    
+        .error {
+            background-color: $error;
+        }
+        
+        input {
+            position: absolute;
         }
     }
 }

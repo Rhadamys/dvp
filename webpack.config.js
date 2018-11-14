@@ -55,5 +55,11 @@ module.exports = {
             template: 'index.html',
             inject: true
         })
-    ]
+    ],
+    resolve: {
+        alias: {
+          'Source': path.resolve(__dirname, 'src'),
+          'Tests': path.resolve(__dirname, 'tests'),
+        }
+    }
 }
