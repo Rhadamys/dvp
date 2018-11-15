@@ -20,7 +20,7 @@ from django.views.generic import TemplateView
 from django.conf.urls import url
 
 urlpatterns = [
+    path(r'trace/', csrf_exempt(views.GenerateTrace.as_view())),
     url(r'^$', csrf_exempt(TemplateView.as_view(template_name='index.html'))),
-    url(r'^(?P<path>.*)/$', csrf_exempt(TemplateView.as_view(template_name='index.html'))),
-    path(r'trace/', csrf_exempt(views.GenerateTrace.as_view()))
+    url(r'^(?P<path>.*)/$', csrf_exempt(TemplateView.as_view(template_name='index.html')))
 ]
