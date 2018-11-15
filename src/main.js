@@ -21,6 +21,8 @@ Vue.use(MdList)
 Vue.use(MdToolbar)
 Vue.use(MdTooltip)
 
+axios.defaults.xsrfCookieName = 'csrftoken'
+axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 Vue.prototype.$http = axios
 
 Vue.mixin({

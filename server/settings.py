@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['rhadamys.pythonanywhere.com', 'localhost', '127.0.0.1']
 
+CSRF_COOKIE_NAME = "XSRF-TOKEN"
 
 # Application definition
 
