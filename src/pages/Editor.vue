@@ -9,8 +9,8 @@
     </div>
 </template>
 <script>
-import Editor from '../components/Editor.vue'
-import IOConsole from '../components/Console.vue'
+import Editor from '../components/Editor'
+import IOConsole from '../components/Console'
 
 export default {
     components: {

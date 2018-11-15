@@ -53,9 +53,10 @@
     </md-card>
 </template>
 <script>
-import AnnonationTypes from 'Source/annotations'
-import Messages from 'Source/messages'
-import Events from 'Source/events'
+import AnnonationTypes from '@/annotations'
+import Messages from '@/messages'
+import Events from '@/events'
+import ace from 'ace-builds'
 
 export default {
     data: function() {
@@ -101,7 +102,7 @@ export default {
             const script = localStorage.getItem("script")
             const payload = Object.assign({}, { script }, addPayload)
             this.$http
-                .post('http://localhost:8000/trace/', payload)
+                .post('http://rhadamys.pythonanywhere.com/trace/', payload)
                 .then(response => {
                     this.response(response.data)
                 })

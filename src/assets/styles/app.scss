@@ -176,7 +176,7 @@ input[type="range"]::-moz-range-thumb {
 
 /** ACE editor customization **/
 .ace_fold {
-    background-image: url('./more.svg') !important;
+    background-image: url('../more.svg') !important;
     background-color: transparent !important;
     border: none !important;
     margin: 0;
@@ -184,7 +184,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .gutter_error_line {
-    background-image: url('./error.svg') !important;
+    background-image: url('../error.svg') !important;
     background-color: $error !important;
     background-size: 12px;
     background-position: 4px 2.3px;
@@ -195,7 +195,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .gutter_warning_line {
-    background-image: url('./warning.svg') !important;
+    background-image: url('../warning.svg') !important;
     background-color: $warning !important;
     background-size: 12px;
     background-position: 4px 2.3px;
@@ -206,7 +206,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .gutter_current_line {
-    background-image: url('./line.svg');
+    background-image: url('../line.svg');
     background-color: md-get-palette-color(lightgreen, 200) !important;
     background-size: 12px;
     background-position: 4px 2.3px;
@@ -217,7 +217,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .gutter_next_line {
-    background-image: url('./line.svg');
+    background-image: url('../line.svg');
     background-color: md-get-palette-color(lightblue, 200) !important;
     background-size: 12px;
     background-position: 4px 2.3px;
@@ -228,7 +228,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .gutter_prompt_line {
-    background-image: url('./input.svg');
+    background-image: url('../input.svg');
     background-color: $prompt !important;
     background-size: 16px;
     background-position: 2px;

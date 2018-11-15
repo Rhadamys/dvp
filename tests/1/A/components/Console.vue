@@ -12,7 +12,7 @@
     </md-card>
 </template>
 <script>
-import Events from 'Source/events'
+import Events from '@/events'
 
 export default {
     data: function() {

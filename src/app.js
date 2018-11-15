@@ -1,11 +1,22 @@
 import Vue from 'vue'
 import { router } from './router'
 import axios from 'axios'
-import VueMaterial from 'vue-material'
+import { MdApp, MdButton, MdCard, MdContent, MdDivider, 
+    MdDrawer, MdIcon, MdList, MdToolbar, MdTooltip } from 'vue-material/dist/components'
 import 'vue-material/dist/vue-material.min.css'
 import './assets/app.scss'
+require("ace-builds/src-noconflict/mode-python")
 
-Vue.use(VueMaterial);
+Vue.use(MdApp)
+Vue.use(MdButton)
+Vue.use(MdCard)
+Vue.use(MdContent)
+Vue.use(MdDivider)
+Vue.use(MdDrawer)
+Vue.use(MdIcon)
+Vue.use(MdList)
+Vue.use(MdToolbar)
+Vue.use(MdTooltip)
 
 import App from './App.vue'
 
@@ -21,6 +32,7 @@ Vue.mixin({
         }
     }
 })
+
 new Vue({
     el: '#app',
     router,
