@@ -4,7 +4,7 @@
             <div>
                 <span class="md-title">Editor</span>
             </div>
-            <div class="debugger-actions" v-if="trace && trace.length > 1">
+            <div class="debugger-actions">
                 <md-button class="md-icon-button md-dense"
                     v-on:click="step -= 1"
                     v-bind:disabled="step === 0">
@@ -12,27 +12,15 @@
                     <md-tooltip md-direction="top">Retroceder</md-tooltip>
                 </md-button>
                 <md-button class="md-icon-button md-dense"
-                    v-if="stepping.active"
-                    v-on:click="pause">
-                    <md-icon class="pause-btn">pause</md-icon>
-                    <md-tooltip md-direction="top">Pausar</md-tooltip>
-                </md-button>
-                <md-button class="md-icon-button md-dense"
-                    v-on:click="play"
-                    v-else >
+                    v-on:click="send">
                     <md-icon class="play-btn">play_arrow</md-icon>
-                    <md-tooltip md-direction="top">Depurar</md-tooltip>
+                    <md-tooltip md-direction="top">Ejecutar</md-tooltip>
                 </md-button>
                 <md-button class="md-icon-button md-dense"
                     v-on:click="step += 1"
                     v-bind:disabled="step === last">
                     <md-icon>navigate_next</md-icon>
                     <md-tooltip md-direction="top">Avanzar</md-tooltip>
-                </md-button>
-                <md-button class="md-icon-button md-dense"
-                    v-on:click="refresh">
-                    <md-icon>refresh</md-icon>
-                    <md-tooltip md-direction="top">Volver a ejecutar</md-tooltip>
                 </md-button>
             </div>
         </md-card-actions>
@@ -56,7 +44,6 @@
 import AnnonationTypes from '@/annotations'
 import Messages from '@/messages'
 import Events from '@/events'
-import ace from 'ace-builds'
 
 export default {
     data: function() {
@@ -70,7 +57,6 @@ export default {
             },
             step: undefined,
             last: undefined,
-            codeChangeTimeOut: null,
             stepping: {
                 timer: null,
                 interval: 1000,
@@ -89,16 +75,14 @@ export default {
         this.ace.editor.session.setValue(localStorage.getItem("script"))
     },
     methods: {
-        change: function(delta) {
-            this.$root.$emit(Events.RESET)
-            localStorage.setItem("script", this.ace.editor.session.getValue())
-            clearTimeout(this.codeChangeTimeOut)
-            this.codeChangeTimeOut = setTimeout(() => {
-                this.reset()
-                this.send()
-            }, 1000)
+        change: function() {
+            this.reset()
+            
+            this.trace = undefined
+            this.step = undefined
         },
         send: function(addPayload = {}) {
+            localStorage.setItem("script", this.ace.editor.session.getValue())
             const script = localStorage.getItem("script")
             const payload = Object.assign({}, { script }, addPayload)
             this.$http
@@ -200,24 +184,6 @@ export default {
             const Range = ace.require('ace/range').Range
             const marker_id = this.ace.editor.session.addMarker(new Range(row, 0, row, 1), type, 'fullLine')
             this.ace.markers.push(marker_id)
-        },
-        play: function() {
-            if(this.step == this.last) this.step = 0
-            this.stepping.timer = setInterval(() => {
-                this.step += 1
-                if(this.step === this.last) this.pause()
-            }, this.stepping.interval)
-            this.stepping.active = true
-        },
-        pause: function() {
-            clearInterval(this.stepping.timer)
-            this.stepping.timer = undefined
-            this.stepping.active = false
-        },
-        refresh: function() {
-            this.$root.$emit(Events.RESET)
-            this.reset()
-            this.send()
         },
         reset: function() {
             this.exception = undefined

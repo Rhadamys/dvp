@@ -8,7 +8,6 @@ import { MdApp, MdButton, MdCard, MdContent, MdDivider,
     MdDrawer, MdIcon, MdList, MdToolbar, MdTooltip } from 'vue-material/dist/components'
 import 'vue-material/dist/vue-material.min.css'
 require('@/assets/styles/app.scss')
-require('ace-builds/src-noconflict/mode-python')
 
 Vue.use(MdApp)
 Vue.use(MdButton)

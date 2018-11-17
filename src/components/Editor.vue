@@ -12,18 +12,6 @@
                     <md-tooltip md-direction="top">Retroceder</md-tooltip>
                 </md-button>
                 <md-button class="md-icon-button md-dense"
-                    v-if="stepping.active"
-                    v-on:click="pause">
-                    <md-icon class="pause-btn">pause</md-icon>
-                    <md-tooltip md-direction="top">Pausar</md-tooltip>
-                </md-button>
-                <md-button class="md-icon-button md-dense"
-                    v-on:click="play"
-                    v-else >
-                    <md-icon class="play-btn">play_arrow</md-icon>
-                    <md-tooltip md-direction="top">Depurar</md-tooltip>
-                </md-button>
-                <md-button class="md-icon-button md-dense"
                     v-on:click="step += 1"
                     v-bind:disabled="step === last">
                     <md-icon>navigate_next</md-icon>
@@ -56,7 +44,6 @@
 import AnnonationTypes from '@/annotations'
 import Messages from '@/messages'
 import Events from '@/events'
-import ace from 'ace-builds'
 
 export default {
     data: function() {
@@ -71,11 +58,6 @@ export default {
             step: undefined,
             last: undefined,
             codeChangeTimeOut: null,
-            stepping: {
-                timer: null,
-                interval: 1000,
-                active: false,
-            },
         }
     },
     created: function() {
@@ -91,7 +73,7 @@ export default {
     methods: {
         change: function(delta) {
             this.$root.$emit(Events.RESET)
-            localStorage.setItem("script", this.ace.editor.session.getValue())
+            localStorage.setItem('script', this.ace.editor.session.getValue())
             clearTimeout(this.codeChangeTimeOut)
             this.codeChangeTimeOut = setTimeout(() => {
                 this.reset()
@@ -99,10 +81,10 @@ export default {
             }, 1000)
         },
         send: function(addPayload = {}) {
-            const script = localStorage.getItem("script")
+            const script = localStorage.getItem('script')
             const payload = Object.assign({}, { script }, addPayload)
             this.$http
-                .post('http://rhadamys.pythonanywhere.com/trace/', payload)
+                .post(process.env.ROOT_API + 'trace/', payload)
                 .then(response => {
                     this.response(response.data)
                 })
@@ -200,19 +182,6 @@ export default {
             const Range = ace.require('ace/range').Range
             const marker_id = this.ace.editor.session.addMarker(new Range(row, 0, row, 1), type, 'fullLine')
             this.ace.markers.push(marker_id)
-        },
-        play: function() {
-            if(this.step == this.last) this.step = 0
-            this.stepping.timer = setInterval(() => {
-                this.step += 1
-                if(this.step === this.last) this.pause()
-            }, this.stepping.interval)
-            this.stepping.active = true
-        },
-        pause: function() {
-            clearInterval(this.stepping.timer)
-            this.stepping.timer = undefined
-            this.stepping.active = false
         },
         refresh: function() {
             this.$root.$emit(Events.RESET)

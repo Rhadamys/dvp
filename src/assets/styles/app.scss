@@ -174,6 +174,52 @@ input[type="range"]::-moz-range-thumb {
     }
 }
 
+.symbol {
+    padding: 4px;
+    border-radius: 4px;
+    margin-right: 28px;
+
+    &-current {
+        background-color: md-get-palette-color(lightgreen, 200) !important;
+
+        .md-icon-font {
+            color: md-get-palette-color(lightgreen, 700) !important;
+        }
+    }
+
+    &-next {
+        background-color: md-get-palette-color(lightblue, 200) !important;
+
+        .md-icon-font {
+            color: md-get-palette-color(lightblue, 700) !important;
+        }
+    }
+
+    &-error {
+        background-color: $error !important;
+
+        .md-icon-font {
+            color: md-get-palette-color(deeporange, 700) !important;
+        }
+    }
+
+    &-warning {
+        background-color: $warning !important;
+
+        .md-icon-font {
+            color: md-get-palette-color(yellow, 700) !important;
+        }
+    }
+
+    &-prompt {
+        background-color: $prompt !important;
+
+        .md-icon-font {
+            color: md-get-palette-color(purple, 700) !important;
+        }
+    }
+}
+
 /** ACE editor customization **/
 .ace_fold {
     background-image: url('../more.svg') !important;

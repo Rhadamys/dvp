@@ -4,7 +4,7 @@
             <div>
                 <span class="md-title">Editor</span>
             </div>
-            <div class="debugger-actions">
+            <div class="debugger-actions" v-if="trace && trace.length > 1">
                 <md-button class="md-icon-button md-dense"
                     v-on:click="step -= 1"
                     v-bind:disabled="step === 0">
@@ -12,15 +12,15 @@
                     <md-tooltip md-direction="top">Retroceder</md-tooltip>
                 </md-button>
                 <md-button class="md-icon-button md-dense"
-                    v-on:click="send">
-                    <md-icon class="play-btn">play_arrow</md-icon>
-                    <md-tooltip md-direction="top">Ejecutar</md-tooltip>
-                </md-button>
-                <md-button class="md-icon-button md-dense"
                     v-on:click="step += 1"
                     v-bind:disabled="step === last">
                     <md-icon>navigate_next</md-icon>
                     <md-tooltip md-direction="top">Avanzar</md-tooltip>
+                </md-button>
+                <md-button class="md-icon-button md-dense"
+                    v-on:click="refresh">
+                    <md-icon>refresh</md-icon>
+                    <md-tooltip md-direction="top">Volver a ejecutar</md-tooltip>
                 </md-button>
             </div>
         </md-card-actions>
@@ -44,7 +44,6 @@
 import AnnonationTypes from '@/annotations'
 import Messages from '@/messages'
 import Events from '@/events'
-import ace from 'ace-builds'
 
 export default {
     data: function() {
@@ -58,11 +57,7 @@ export default {
             },
             step: undefined,
             last: undefined,
-            stepping: {
-                timer: null,
-                interval: 1000,
-                active: false,
-            },
+            codeChangeTimeOut: null,
         }
     },
     created: function() {
@@ -76,18 +71,20 @@ export default {
         this.ace.editor.session.setValue(localStorage.getItem("script"))
     },
     methods: {
-        change: function() {
-            this.reset()
-            
-            this.trace = undefined
-            this.step = undefined
+        change: function(delta) {
+            this.$root.$emit(Events.RESET)
+            localStorage.setItem("script", this.ace.editor.session.getValue())
+            clearTimeout(this.codeChangeTimeOut)
+            this.codeChangeTimeOut = setTimeout(() => {
+                this.reset()
+                this.send()
+            }, 1000)
         },
         send: function(addPayload = {}) {
-            localStorage.setItem("script", this.ace.editor.session.getValue())
             const script = localStorage.getItem("script")
             const payload = Object.assign({}, { script }, addPayload)
             this.$http
-                .post('http://rhadamys.pythonanywhere.com/trace/', payload)
+                .post(process.env.ROOT_API + 'trace/', payload)
                 .then(response => {
                     this.response(response.data)
                 })
@@ -185,6 +182,11 @@ export default {
             const Range = ace.require('ace/range').Range
             const marker_id = this.ace.editor.session.addMarker(new Range(row, 0, row, 1), type, 'fullLine')
             this.ace.markers.push(marker_id)
+        },
+        refresh: function() {
+            this.$root.$emit(Events.RESET)
+            this.reset()
+            this.send()
         },
         reset: function() {
             this.exception = undefined
