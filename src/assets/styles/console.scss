@@ -1,0 +1,63 @@
+@import "./base.scss";
+
+@import "~vue-material/dist/theme/engine";
+
+@include md-register-theme("console", (
+    primary: black,
+    accent: $secondary,
+    theme: dark
+));
+
+@import "~vue-material/dist/theme/all";
+                 
+.io {
+    background: black !important;
+    font-family: monospace;
+
+    .md-card-actions {
+        border-bottom: 1px solid white;
+        padding: 0;
+        padding-left: 16px;
+    }
+
+    .console {
+        color: white !important;
+        width: 100%;
+        height: 100%;
+        padding: 20px;
+        overflow-y: auto;
+
+        div {
+            width: 100%;
+        }
+
+        &-prompt {
+            display: flex;
+
+            div {
+                width: auto;
+            }
+
+            input {
+                background: none;
+                color: white;
+                font-family: monospace;
+                white-space: pre;
+                border: none;
+                flex-grow: 1;
+                margin-left: 0.5em;
+                border-bottom: 2px solid $accent;
+            }
+
+            input:focus{
+                outline: none;
+            }
+        }
+
+        &-empty {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+        }
+    }
+}

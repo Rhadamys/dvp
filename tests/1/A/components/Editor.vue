@@ -42,7 +42,7 @@
 </template>
 <script>
 import AnnonationTypes from '@/annotations'
-import Messages from '@/messages'
+import Const from '@/const'
 import Events from '@/events'
 
 export default {
@@ -163,7 +163,7 @@ export default {
         renderPrompt: function(raw_input, last_step) {
             this.$root.$emit(Events.PROMPT_INPUT, raw_input)
             const row = last_step.line - 1
-            this.highlight(row, 0, Messages.PROMPT, AnnonationTypes.PROMPT)
+            this.highlight(row, 0, Const.PROMPT, AnnonationTypes.PROMPT)
         },
         finishRender: function(step) {
             this.ace.editor.scrollToLine(step.line, true, true)

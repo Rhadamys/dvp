@@ -1,30 +1,19 @@
-@import "~vue-material/dist/theme/engine";
+@import "./base.scss";
 
-$primary: md-get-palette-color(blue, A700);
-$secondary: md-get-palette-color(blue, A200);
-$accent: md-get-palette-color(amber, 900);
-$prompt: md-get-palette-color(purple, 200);
-$warning: md-get-palette-color(yellow, 200);
-$error: md-get-palette-color(deeporange, 200);
+.text-center {
+    text-align: center !important;
+}
 
-@include md-register-theme("default", (
-    primary: $primary,
-    accent: $accent,
-    theme: dark
-));
+.md-dialog {
+    &-container {
+        overflow-x: auto !important;
+    }
 
-@include md-register-theme("default-light", (
-    primary: $primary,
-    accent: $accent,
-));
-
-@include md-register-theme("secondary", (
-    primary: $secondary,
-    accent: $accent,
-    theme: dark
-));
-
-@import "~vue-material/dist/theme/all";
+    &-danger {
+        background-color: md-get-palette-color(red, 700) !important;
+        padding-bottom: 20px; 
+    }
+}
 
 .md-app {
     min-height: 100vh;
@@ -57,119 +46,6 @@ $error: md-get-palette-color(deeporange, 200);
                     }
                 }
             }
-        }
-    }
-}
-                 
-.io {
-    background: black !important;
-    overflow: auto !important;
-
-    .console {
-        color: white !important;
-        font-family: monospace;
-        width: 100%;
-        height: auto;
-        padding: 20px;
-
-        div {
-            width: 100%;
-        }
-
-        &-prompt {
-            display: flex;
-
-            div {
-                width: auto;
-            }
-
-            input {
-                background: none;
-                color: white;
-                font-family: monospace;
-                white-space: pre;
-                border: none;
-                flex-grow: 1;
-                margin-left: 0.5em;
-                border-bottom: 2px solid $accent;
-            }
-
-            input:focus{
-                outline: none;
-            }
-        }
-    }
-}
-
-input[type="range"] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 6px;
-    background: transparent;
-    outline: none;
-    -webkit-transition: .2s;
-    transition: opacity .2s;
-    margin: 0;
-    z-index: 10;
-}
-
-$sliderSize: 16px;
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: $sliderSize;
-    height: $sliderSize;
-    border-radius: 50%; 
-    background: $accent;
-    cursor: pointer;
-}
-
-input[type="range"]::-moz-range-thumb {
-    width: $sliderSize;
-    height: $sliderSize;
-    border-radius: 50%;
-    background: $accent;
-    cursor: pointer;
-}
-
-.editor {
-    .debugger-actions {
-        .play-btn {
-            color: md-get-palette-color(lightgreen, 400) !important;
-        }
-
-        .pause-btn {
-            color: md-get-palette-color(orange, 400) !important;
-        }
-    }
-
-    .stepper {
-        display: flex;
-    
-        .step {
-            flex-grow: 2;
-            height: 8px;
-            background-color: gray;
-        }
-    
-        .first, .last {
-            flex-grow: 1 !important;
-        }
-    
-        .prompt {
-            background-color: $prompt;
-        }
-    
-        .warning {
-            background-color: $warning;
-        }
-    
-        .error {
-            background-color: $error;
-        }
-        
-        input {
-            position: absolute;
         }
     }
 }
@@ -220,81 +96,53 @@ input[type="range"]::-moz-range-thumb {
     }
 }
 
-/** ACE editor customization **/
-.ace_fold {
-    background-image: url('../more.svg') !important;
-    background-color: transparent !important;
-    border: none !important;
-    margin: 0;
-    margin-left: 6px;
+.card {
+    margin: 16px !important;
+
+    .md-card-content {
+        padding-bottom: 8px !important;
+    }
+
+    .md-card-header {
+        vertical-align: middle;
+    }
+    
+    &-about {
+        background-color: md-get-palette-color(grey, 700) !important;
+    }
+
+    &-danger {
+        background-color: md-get-palette-color(red, 700) !important;
+    }
+
+    &-error {
+        .md-card-header {
+            background-color: md-get-palette-color(red, 700) !important;
+            vertical-align: middle;
+        }
+    }
+
+    &-warning {
+        .md-card-header {
+            background-color: md-get-palette-color(yellow, 700) !important;
+            vertical-align: middle !important;
+        }
+    }
 }
 
-.gutter_error_line {
-    background-image: url('../error.svg') !important;
-    background-color: $error !important;
-    background-size: 12px;
-    background-position: 4px 2.3px;
-}
-.error_line {
-    background-color: md-get-palette-color(deeporange, 100);
-    position: absolute;
+/* width */
+::-webkit-scrollbar, .ace_scrollbar {
+    width: 8px;
 }
 
-.gutter_warning_line {
-    background-image: url('../warning.svg') !important;
-    background-color: $warning !important;
-    background-size: 12px;
-    background-position: 4px 2.3px;
-}
-.warning_line {
-    background-color: md-get-palette-color(yellow, 100);
-    position: absolute;
+/* Track */
+::-webkit-scrollbar-track {
+    background-color: md-get-palette-color(grey, 400) !important;
+    border-radius: 10px;
 }
 
-.gutter_current_line {
-    background-image: url('../line.svg');
-    background-color: md-get-palette-color(lightgreen, 200) !important;
-    background-size: 12px;
-    background-position: 4px 2.3px;
-}
-.current_line {
-    background-color: md-get-palette-color(lightgreen, 100);
-    position: absolute;
-}
-
-.gutter_next_line {
-    background-image: url('../line.svg');
-    background-color: md-get-palette-color(lightblue, 200) !important;
-    background-size: 12px;
-    background-position: 4px 2.3px;
-}
-.next_line {
-    background-color: md-get-palette-color(lightblue, 100);
-    position: absolute;
-}
-
-.gutter_prompt_line {
-    background-image: url('../input.svg');
-    background-color: $prompt !important;
-    background-size: 16px;
-    background-position: 2px;
-}
-.prompt_line {
-    background-color: md-get-palette-color(purple, 100);
-    position: absolute;
-}
-
-.ace_scrollbar {
-    display: none !important;
-}
-
-.ace_tooltip {
-    background: white;
-    border-top: none;
-    border-right: none;
-    border-left: none;
-    border-image: initial;
-    border-bottom: 2px solid $accent;
-    box-shadow: rgb(187, 187, 187) 2px 2px 5px;
-    border-radius: 2px;
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: md-get-palette-color(grey, 700) !important;; 
+    border-radius: 10px;
 }

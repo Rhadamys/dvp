@@ -5,6 +5,11 @@
                 <md-icon>menu</md-icon>
             </md-button>
             <span class="md-title">Depurador visual para Python</span>
+            <input type="range" class="md-elevation-1" min="0"
+                v-bind:max="stepping.last"
+                v-model.number="stepping.current"
+                v-if="stepping.last > 0"
+                @input="setStep"/>
         </md-app-toolbar>
         <md-app-drawer :md-active.sync="menuVisible">
             <md-toolbar class="md-transparent" md-elevation="0">Simbología</md-toolbar>
@@ -40,6 +45,24 @@
                     <span class="md-list-item-text">Entrada de usuario requerida en la consola</span>
                 </md-list-item>
             </md-list>
+            <md-divider></md-divider>
+            <md-card class="card card-about">
+                <md-card-header>
+                    <md-avatar>
+                        <img src="@/assets/profile.jpg" alt="Imagen de perfil">
+                    </md-avatar>
+                    <div class="md-title">Mario Álvarez Molina</div>
+                    <div class="md-subhead">Estudiante Ingeniería de Ejecución en Computación e Informática</div>
+                </md-card-header>
+                <md-card-content>
+                    Esta aplicación se encuentra en desarrollo y puede presentar inconsistencias. Si tienes alguna sugerencia o comentario, contáctame.
+                </md-card-content>
+                <md-card-actions>
+                    <md-button href="mailto:mario.alvarez.m@usach.cl">
+                        <md-icon>mail</md-icon>&ensp;mario.alvarez.m@usach.cl
+                    </md-button>
+                </md-card-actions>
+            </md-card>
         </md-app-drawer>
         <md-app-content>
             <router-view></router-view>
@@ -47,11 +70,26 @@
     </md-app>
 </template>
 <script>
+import Events from '@/events'
+
 export default {
     data: function() {
         return {
             menuVisible: false,
+            stepping: {
+                current: undefined,
+                last: undefined,
+            },
         }
     },
+    created: function() {
+        this.$root.$on(Events.UPDATE_STEPPING, (stepping) => this.stepping = stepping)
+        this.$root.$on(Events.SET_STEP, (step) => this.stepping.current = step)
+    },
+    methods: {
+        setStep: function() {
+            this.$root.$emit(Events.SET_STEP, this.stepping.current)
+        }
+    }
 }
 </script>

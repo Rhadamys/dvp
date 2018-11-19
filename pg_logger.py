@@ -1322,7 +1322,10 @@ class PGLogger(bdb.Bdb):
 
 
         if len(self.trace) >= MAX_EXECUTED_LINES:
-            self.trace.append(dict(event='instruction_limit_reached', exception_msg='Stopped after running ' + str(MAX_EXECUTED_LINES) + ' steps. Please shorten your code,\nsince Python Tutor is not designed to handle long-running code.'))
+
+            self.trace.append(dict(event='instruction_limit_reached',
+                                   lineno=lineno,
+                                   exception_msg='Actualmente se pueden ejecutar hasta ' + str(MAX_EXECUTED_LINES) + ' pasos. Por favor, considera:<ul><li>Disminuir el largo del código</li><li><b>¿Habrá un loop infinito?</b></li></ul>'))
             self.force_terminate()
 
         self.forget()

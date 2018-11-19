@@ -1,0 +1,76 @@
+@import "./base.scss";
+
+/** ACE editor customization **/
+.ace_fold {
+    background-image: url('../more.svg') !important;
+    background-color: transparent !important;
+    border: none !important;
+    margin: 0;
+    margin-left: 6px;
+}
+
+.gutter_error_line {
+    background-image: url('../error.svg') !important;
+    background-color: $error !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.error_line {
+    background-color: md-get-palette-color(deeporange, 100);
+    position: absolute;
+}
+
+.gutter_warning_line {
+    background-image: url('../warning.svg') !important;
+    background-color: $warning !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.warning_line {
+    background-color: md-get-palette-color(yellow, 100);
+    position: absolute;
+}
+
+.gutter_current_line {
+    background-image: url('../line.svg');
+    background-color: md-get-palette-color(lightgreen, 200) !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.current_line {
+    background-color: md-get-palette-color(lightgreen, 100);
+    position: absolute;
+}
+
+.gutter_next_line {
+    background-image: url('../line.svg');
+    background-color: md-get-palette-color(lightblue, 200) !important;
+    background-size: 12px;
+    background-position: 4px 2.3px;
+}
+.next_line {
+    background-color: md-get-palette-color(lightblue, 100);
+    position: absolute;
+}
+
+.gutter_prompt_line {
+    background-image: url('../input.svg');
+    background-color: $prompt !important;
+    background-size: 16px;
+    background-position: 2px;
+}
+.prompt_line {
+    background-color: md-get-palette-color(purple, 100);
+    position: absolute;
+}
+
+.ace_tooltip {
+    background: white;
+    border-top: none;
+    border-right: none;
+    border-left: none;
+    border-image: initial;
+    border-bottom: 2px solid $accent;
+    box-shadow: rgb(187, 187, 187) 2px 2px 5px;
+    border-radius: 2px;
+}

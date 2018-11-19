@@ -4,25 +4,28 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import axios from 'axios'
-import { MdApp, MdButton, MdCard, MdContent, MdDivider, 
-    MdDrawer, MdIcon, MdList, MdToolbar, MdTooltip } from 'vue-material/dist/components'
+import VueMaterial from 'vue-material'
 import 'vue-material/dist/vue-material.min.css'
+require('@/assets/styles/base.scss')
 require('@/assets/styles/app.scss')
 
-Vue.use(MdApp)
-Vue.use(MdButton)
-Vue.use(MdCard)
-Vue.use(MdContent)
-Vue.use(MdDivider)
-Vue.use(MdDrawer)
-Vue.use(MdIcon)
-Vue.use(MdList)
-Vue.use(MdToolbar)
-Vue.use(MdTooltip)
+Vue.use(VueMaterial)
 
+// Encabezados CSRF Token
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+// Axios por defecto para requests
 Vue.prototype.$http = axios
+
+// Formato de fechas
+Date.prototype.toString = function() {
+    const day = this.getDate()
+    const month = this.getMonth() + 1
+    const year = this.getFullYear()
+    const hours = this.getHours()
+    const mins = this.getMinutes()
+    return day + '/' + month + '/' + year + ' ' + (hours < 10 ? '0': '') + hours + ':' + (mins < 10 ? '0': '') + mins
+}
 
 Vue.mixin({
     methods: {
@@ -36,11 +39,9 @@ Vue.mixin({
 })
 
 Vue.config.productionTip = false
-
-/* eslint-disable no-new */
 new Vue({
-  el: '#app',
-  router,
-  components: { App },
-  template: '<App/>'
+    el: '#app',
+    router,
+    components: { App },
+    template: '<App/>'
 })
