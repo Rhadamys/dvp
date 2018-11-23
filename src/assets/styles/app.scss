@@ -1,18 +1,64 @@
 @import "./base.scss";
 
+@import url('https://fonts.googleapis.com/css?family=Ubuntu');
+html, body {
+    font-family: 'Ubuntu', serif;
+}
+
 .text-center {
     text-align: center !important;
 }
 
 .md-dialog {
+    &-title {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+
+        .md-step {
+            font-size: 12px;
+            margin-left: 12px;
+        }
+    }
+
     &-container {
-        overflow-x: auto !important;
+        overflow: auto !important;
     }
 
     &-danger {
         background-color: md-get-palette-color(red, 700) !important;
         padding-bottom: 20px; 
     }
+}
+
+.group-vertical {
+    height: auto;
+    border-radius: $borderRadius;
+    
+    $boxDim: 20px;
+    &-title {
+        background-color: md-get-palette-color(grey, 900) !important;
+        font-size: 10px;
+        text-align: center;
+        width: 100%;
+        height: $boxDim;
+        line-height: $boxDim;
+        border-top-left-radius: $borderRadius;
+        border-top-right-radius: $borderRadius;
+    }
+
+    &-content {
+        padding: 4px;
+    }
+}
+
+.group-horizontal {
+    display: flex !important;
+    flex-direction: row;
+}
+
+.selectable {
+    cursor: pointer !important;
 }
 
 .md-app {
@@ -133,6 +179,7 @@
 /* width */
 ::-webkit-scrollbar, .ace_scrollbar {
     width: 8px;
+    height: 8px;
 }
 
 /* Track */

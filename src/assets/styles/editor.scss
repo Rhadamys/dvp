@@ -24,6 +24,10 @@
         &-warnings {
             background-color: md-get-palette-color(yellow, 700) !important;
         }
+
+        &-vars {
+            background-color: md-get-palette-color(blue, A100) !important;
+        }
     }
 
     &-limit-reached {
@@ -38,6 +42,18 @@
     }
 }
 
+.stepper-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    transform: translateY(6px);
+}
+
+.visual-panel {
+    display: flex;
+    flex-direction: column;
+}
+
 input[type="range"] {
     -webkit-appearance: none;
     width: 100%;
@@ -48,10 +64,6 @@ input[type="range"] {
     transition: opacity .2s;
     margin: 0;
     z-index: 10;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    transform: translateY(6px);
 }
 
 $sliderSize: 16px;

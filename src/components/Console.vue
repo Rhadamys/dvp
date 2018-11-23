@@ -1,11 +1,12 @@
 <template>
-    <md-card class="io md-scrollbar" md-theme="console">
+    <md-card class="io" md-theme="console">
         <md-card-actions md-alignment="space-between">
             <span class="md-title">Consola</span>
-            <md-switch v-model="history.active" value="0" v-on:change="setOut">Historial</md-switch>
+            <md-switch v-model="history.active" value="0" @change="scrollDown">Historial</md-switch>
         </md-card-actions>
         <md-card-content id="output" class="console">
-            <div v-html="stdout"></div>
+            <div v-html="history.cached" v-if="history.active"></div>
+            <div v-html="history.current" v-else></div>
             <div class="console-prompt" v-if="input.request && !history.active">
                 <div>{{ input.request }}</div>
                 <input type="text"
@@ -28,7 +29,6 @@ import Events from '@/events'
 export default {
     data: function() {
         return {
-            stdout: '',
             history: {
                 active: false,
                 cached: '',
@@ -75,14 +75,6 @@ export default {
             this.history.cached = ''
             this.history.active = false
             this.setOut()
-        },
-        /**
-         * Define la salida que se mostrará en la consola. Si history.active es true, entonces
-         * se mostrará el historial, sino, se mostrará la salida generada en la ejecución actual.
-         */
-        setOut: function() {
-            this.stdout = this.history.active ? this.history.cached : this.history.current
-            this.scrollDown()
         },
         /**
          * Hace scroll a la consola hasta el final, para mostrar las salidas más recientes.

@@ -5,11 +5,7 @@
                 <md-icon>menu</md-icon>
             </md-button>
             <span class="md-title">Depurador visual para Python</span>
-            <input type="range" class="md-elevation-1" min="0"
-                v-bind:max="stepping.last"
-                v-model.number="stepping.current"
-                v-if="stepping.last > 0"
-                @input="setStep"/>
+            <stepper class="stepper-bottom"></stepper>
         </md-app-toolbar>
         <md-app-drawer :md-active.sync="menuVisible">
             <md-toolbar class="md-transparent" md-elevation="0">Simbología</md-toolbar>
@@ -70,26 +66,16 @@
     </md-app>
 </template>
 <script>
-import Events from '@/events'
+import Stepper from '@/components/Stepper'
 
 export default {
     data: function() {
         return {
             menuVisible: false,
-            stepping: {
-                current: undefined,
-                last: undefined,
-            },
         }
     },
-    created: function() {
-        this.$root.$on(Events.UPDATE_STEPPING, (stepping) => this.stepping = stepping)
-        this.$root.$on(Events.SET_STEP, (step) => this.stepping.current = step)
-    },
-    methods: {
-        setStep: function() {
-            this.$root.$emit(Events.SET_STEP, this.stepping.current)
-        }
+    components: {
+        'stepper': Stepper,
     }
 }
 </script>

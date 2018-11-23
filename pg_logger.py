@@ -611,6 +611,176 @@ class PGLogger(bdb.Bdb):
 
         self.prev_lineno = -1 # keep track of previous line just executed
 
+        self.registered_loops = [] # Loops registrados
+        self.loop_stack = [] # Para guardar loops
+        self.known_loop_scopes = dict()
+
+    def register_loop(self, lineno, current_scope):
+        if lineno in self.registered_loops:
+            return True
+
+        line = self.executed_script_lines[lineno - 1].strip()
+        if line.startswith('for'):
+            line_parts = line.strip(':').split(' ')
+            line_parts = list(filter(None, line_parts))
+            iterable_idx = line_parts.index('in') + 1
+            iterable_str = ' '.join(line_parts[iterable_idx:])
+            iterable_val = eval(iterable_str, self.user_globals, self.user_locals)
+            iterable = list(iterable_val)
+            loop = dict(iterable=iterable)
+        elif line.startswith('while'):
+            if not line.endswith(':'):
+                current = lineno + 1
+                found = False
+                while not found:
+                    next_line = self.executed_script_lines[current]
+                    next_line = next_line.strip()
+                    line += ' ' + next_line
+                    found = next_line.endswith(':')
+
+            temp = line.strip(' ')
+            if temp.startswith('while('):
+                first = line.find('(')
+                last = line.rfind(')')
+                line = list(line)
+                line[first] = ' '
+                line.pop(last)
+                line = ''.join(line)
+            
+            line_parts = line.strip(':').split(' ')
+            line_parts = list(filter(None, line_parts))
+            loop = dict(condition=' '.join(line_parts[1:]))
+        else:
+            return False
+
+        lineno_str = str(lineno)
+        ordered_varnames = []
+        if lineno_str in self.known_loop_scopes:
+            ordered_varnames = self.known_loop_scopes[lineno_str]['inner']
+        else:
+            self.known_loop_scopes[lineno_str] = dict(outer=current_scope['ordered_varnames'], inner=[])
+            
+        loop_type = line_parts[0]
+        loop.update(dict(line=lineno,
+                         loop_type=loop_type,
+                         line_parts=line_parts,
+                         encoded_vars=dict(),
+                         ordered_varnames=ordered_varnames),
+                         current=0)
+        self.registered_loops.append(lineno)
+        self.loop_stack.append(loop)
+        return False
+
+    def update_loop(self, lineno, current_scope, prev_scope):
+        loop = dict(self.loop_stack[-1])
+        current = loop['current']
+        encoded_vars = dict(loop['encoded_vars'])
+        loop_type = loop['loop_type']
+
+        if loop['line'] == lineno:
+            current += 1
+            for varname in encoded_vars:
+                current_trace = list(encoded_vars[varname])
+                current_trace.append(None)
+                encoded_vars[varname] = current_trace
+
+        if loop_type == 'for':
+            last = len(loop['iterable']) - 1
+            if current > last:
+                self.registered_loops.pop()
+                self.loop_stack.pop()
+                loop['current'] = current
+                return loop
+        elif not eval(loop['condition'], self.user_globals, self.user_locals):
+            self.registered_loops.pop()
+            self.loop_stack.pop()
+            return loop
+        
+        if current == 0:
+            lineno_str = str(loop['line'])
+            outer = list(self.known_loop_scopes[lineno_str]['outer'])
+            i = 0
+            while i < len(outer):
+                varname = outer[i]
+                if (varname in current_scope['ordered_varnames'] and
+                    current_scope['encoded_vars'][varname] == prev_scope['encoded_vars'][varname] and
+                    self.should_ignore_var(current_scope['encoded_vars'][varname], varname, lineno)):
+                    i += 1
+                else:
+                    outer.pop(i)
+
+            ordered_varnames = [vname for vname in current_scope['ordered_varnames'] if vname not in outer]
+            self.known_loop_scopes[lineno_str]['inner'] = loop['ordered_varnames'] = ordered_varnames
+            self.known_loop_scopes[lineno_str]['outer'] = outer
+
+        for vname, val in current_scope['encoded_vars'].items():
+            if vname in loop['ordered_varnames']:
+                if vname in encoded_vars:
+                    current_trace = list(encoded_vars[vname])
+                    current_trace[current] = val
+                else:
+                    current_trace = [val]
+                encoded_vars[vname] = current_trace
+
+        loop['encoded_vars'] = encoded_vars
+        loop['current'] = current
+        self.loop_stack[-1] = loop
+
+    def should_ignore_var(self, var, varname, lineno):
+        """ Indica si una variable, actualmente marcada en el scope global, debe o no ignorarse
+        dentro del scope de esta iteración.
+
+        Args:
+            var (any): Variable que se está evaluando.
+            varname (str): Nombre de la variable que se está evaluando.
+            lineno (int): Número de la línea de código actual.
+
+        Returns:
+            bool: True, si debe ignorarse la variable, False en otro caso.
+        """
+
+        line = self.executed_script_lines[lineno - 1]
+        return re.search(r'\b' + re.escape(varname) + r'\b', line) == None
+
+    def check_variable_value_changes(self, prev, current):
+        """ Busca cambios de valores en las variables entre los distintos pasos. Si se detecta un
+        cambio de valor, el valor anterior se añade al arreglo de valores pasados. De esta forma
+        se puede renderizar el valor actual y los anteriores en el front.
+
+        Args:
+            prev (obj): Stack del paso anterior.
+            current (obj): Stack del paso actual.
+        
+        Returns:
+            obj: Stack del paso actual, con las variables actualizadas de acuerdo a si se encontraron
+                o no modificaciones en su valor.
+        """
+        
+        for scope_i in range(min(len(prev), len(current))):
+            prev_scope = prev[scope_i].copy()
+            curr_scope = current[scope_i].copy()
+            
+            if 'prev_encoded_vars' in prev_scope:
+                for varname in prev_scope['ordered_varnames']:
+                    if varname in prev_scope['prev_encoded_vars']:
+                        curr_scope['prev_encoded_vars'][varname] = prev_scope['prev_encoded_vars'][varname]
+
+                    prev_value = prev_scope['encoded_vars'][varname]
+                    curr_value = curr_scope['encoded_vars'][varname]
+                    if prev_value != curr_value:
+
+                        last_step = len(self.trace)
+                        prev_record = dict(step=last_step, value=prev_value)
+                        if varname in prev_scope['prev_encoded_vars']:
+                            curr_scope['prev_encoded_vars'][varname] = [prev_record] + prev_scope['prev_encoded_vars'][varname]
+                        else:
+                            curr_scope['prev_encoded_vars'][varname] = [prev_record]
+#                        curr_scope['prev_encoded_vars'][varname] = curr_scope['prev_encoded_vars'][varname][:8]
+                
+                current[scope_i] = curr_scope
+
+        return current.copy()
+
     def should_hide_var(self, var):
         for re_match in self.vars_to_hide:
             if re_match(var):
@@ -918,7 +1088,7 @@ class PGLogger(bdb.Bdb):
 
         # each element is a pair of (function name, ENCODED locals dict)
         encoded_stack_locals = []
-
+        self.user_locals = dict()
 
         # returns a dict with keys: function name, frame id, id of parent frame, encoded_vars dict
         def create_encoded_stack_entry(cur_frame):
@@ -954,7 +1124,9 @@ class PGLogger(bdb.Bdb):
             # effects of aliasing later down the line ...
             encoded_vars = {}
 
-            for (k, v) in get_user_locals(cur_frame).items():
+            user_locals = get_user_locals(cur_frame)
+            self.user_locals.update(user_locals)
+            for (k, v) in user_locals.items():
                 is_in_parent_frame = False
 
                 # don't display locals that appear in your parents' stack frames,
@@ -1021,7 +1193,8 @@ class PGLogger(bdb.Bdb):
                         frame_id=self.get_frame_id(cur_frame),
                         parent_frame_id_list=parent_frame_id_list,
                         encoded_vars=encoded_vars,
-                        ordered_varnames=ordered_varnames)
+                        ordered_varnames=ordered_varnames,
+                        prev_encoded_vars=dict())
 
 
         i = self.curindex
@@ -1150,6 +1323,7 @@ class PGLogger(bdb.Bdb):
         # effects of aliasing later down the line ...
         encoded_globals = {}
         cur_globals_dict = get_user_globals(tos[0], at_global_scope=(self.curindex <= 1))
+        self.user_globals = cur_globals_dict
         for (k, v) in cur_globals_dict.items():
             if self.should_hide_var(k):
                 continue
@@ -1242,20 +1416,52 @@ class PGLogger(bdb.Bdb):
                 except:
                     pass # don't encode the value if there's been an error
 
+        global_scope = dict(func_name='Global',
+                            encoded_vars=encoded_globals,
+                            ordered_varnames=ordered_globals,
+                            prev_encoded_vars=dict())
+        stack_to_render = [global_scope] + stack_to_render
+        stdout = self.get_user_stdout()
+
+        if event_type == 'step_line':
+            current_scope = stack_to_render[-1]
+            registered = self.register_loop(lineno, current_scope)
+            deleted = None
+            if registered:
+                prev_scope = self.trace[-1]['stack_to_render'][-1]
+                deleted = self.update_loop(lineno, current_scope, prev_scope)
+                
+            if self.prev_lineno > 0 and self.executed_script_lines[self.prev_lineno - 1].strip().startswith('print'):
+                if stdout.endswith('\n'):
+                    stdout = stdout[:-1]
+                
+                trace_len = len(self.trace) + 1
+                stdout += '&emsp;<i style="color: gray"> ... Paso: ' + str(trace_len)
+
+                loop = deleted if deleted else self.loop_stack[-1] if self.loop_stack else None
+                if loop:
+                    current = loop['current'] if lineno == loop['line'] else loop['current'] + 1
+                    loop_type = loop['loop_type']
+                    stdout += ' | </i><i style="color: #' + ('FFCA28' if loop_type == 'for' else '4CAF50') + '">Ciclo: ' + str(current) + ' </i><i style="color:gray">(' + loop_type + ' línea ' + str(loop['line']) + ')'
+                stdout += '</i>\n'
+
+        if self.trace:
+            stack_to_render = self.check_variable_value_changes(self.trace[-1]['stack_to_render'], stack_to_render)
+
         if self.show_only_outputs:
             trace_entry = dict(line=lineno,
                                event=event_type,
                                func_name=tos[0].f_code.co_name,
                                stack_to_render=[],
-                               heap={},
-                               stdout=self.get_user_stdout())
+                               stdout=stdout,
+                               loop_stack=list(self.loop_stack))
         else:
             trace_entry = dict(line=lineno,
                                event=event_type,
                                func_name=tos[0].f_code.co_name,
                                stack_to_render=stack_to_render,
-                               heap=self.encoder.get_heap(),
-                               stdout=self.get_user_stdout())
+                               stdout=stdout,
+                               loop_stack=list(self.loop_stack))
             if encoded_probe_vals:
                 trace_entry['probe_exprs'] = encoded_probe_vals
 

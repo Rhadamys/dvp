@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
-import Editor from '@/pages/Editor.vue'
+import Editor from '@/pages/Editor'
 
 Vue.use(Router)
 

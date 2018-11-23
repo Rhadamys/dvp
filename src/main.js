@@ -24,9 +24,12 @@ Date.prototype.toString = function() {
     const year = this.getFullYear()
     const hours = this.getHours()
     const mins = this.getMinutes()
-    return day + '/' + month + '/' + year + ' ' + (hours < 10 ? '0': '') + hours + ':' + (mins < 10 ? '0': '') + mins
+    const sec = this.getSeconds()
+    return day + '/' + month + '/' + year + ' ' + (hours < 10 ? '0': '') + hours + ':' + (mins < 10 ? '0': '') + mins + ':' + (sec < 10 ? '0': '') + sec
 }
 
+import VarData from '@/components/trace/VarData'
+Vue.component('var-data', VarData)
 Vue.mixin({
     methods: {
         formData: function(object) {

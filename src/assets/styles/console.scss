@@ -18,6 +18,8 @@
         border-bottom: 1px solid white;
         padding: 0;
         padding-left: 16px;
+        height: $headerHeight;
+        min-height: $headerHeight !important;
     }
 
     .console {
