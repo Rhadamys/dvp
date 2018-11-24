@@ -8,7 +8,14 @@
             <stepper class="stepper-bottom"></stepper>
         </md-app-toolbar>
         <md-app-drawer :md-active.sync="menuVisible">
-            <md-toolbar class="md-transparent" md-elevation="0">Simbología</md-toolbar>
+            <md-toolbar class="md-transparent flex-horizontal" md-elevation="0">
+                Simbología
+                <md-button class="md-icon-button md-raised md-primary"
+                    href="https://goo.gl/forms/5FVUR6pIyQaPUii43"
+                    target="_blank">
+                    <md-icon>poll</md-icon>
+                </md-button>
+            </md-toolbar>
             <md-list>
                 <md-list-item>
                     <md-content class="symbol symbol-current">

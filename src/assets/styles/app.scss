@@ -68,6 +68,12 @@ html, body {
     z-index: 10;
 }
 
+.flex-horizontal {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
 .md-app {
     min-height: 100vh;
     
