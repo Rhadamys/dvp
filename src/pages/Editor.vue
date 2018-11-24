@@ -3,7 +3,7 @@
         <div class="md-layout-item md-size-60 md-small-size-100">
             <md-card class="md-primary md-elevation-6 editor" md-theme="secondary">
                 <editor-toolbar :exceptions="exceptions" :stepping="stepping"></editor-toolbar>
-                <md-progress-bar class="md-accent" md-mode="indeterminate" v-if="running"></md-progress-bar>
+                <md-progress-bar class="md-accent progress-abs-bottom" md-mode="query" v-if="running"></md-progress-bar>
                 <editor></editor>
                 <md-button class="md-fab md-mini editor-limit-reached"
                     @click="exceptions.limit.dialog = true"

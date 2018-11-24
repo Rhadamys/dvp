@@ -1,9 +1,16 @@
 <template>
-    <div id="ace-editor"></div>
+    <div class="editor-ace">
+        <md-progress-bar class="progress-abs-bottom"
+            md-mode="determinate"
+            :md-value="remaining.perc"
+            v-if="remaining.perc > 0"></md-progress-bar>
+        <div id="ace-editor" class="editor-ace"></div>
+    </div>
 </template>
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
 <style lang="scss" src="@/assets/styles/ace.scss"></style>
 <script>
+import Const from '@/const'
 import Events from '@/events'
 
 export default {
@@ -18,7 +25,14 @@ export default {
              * un breve periodo de tiempo sin realizar modificaciones en el editor, es
              * decir, cuando el usuario deja de escribir.
              */
-            codeChangeTimeOut: null,
+            codeChangeTimeOut: undefined,
+            remaining: {
+                interval: undefined,
+                perc: 0,
+                step: 100,
+                time: 0,
+            },
+            waitTime: window.isMobile() ? Const.TIME_MOBILE : Const.TIME_DESKTOP,
         }
     },
     created: function() {
@@ -47,7 +61,19 @@ export default {
                 this.reset()
                 this.$root.$emit(Events.RESET)
                 this.$root.$emit(Events.SEND_SCRIPT)
-            }, 1000)
+            }, this.waitTime)
+
+            this.countDown()
+        },
+        countDown: function() {
+            clearInterval(this.remaining.interval)            
+            this.remaining.perc = 100
+            this.remaining.time = this.waitTime
+            this.remaining.interval = setInterval(() => {
+                this.remaining.time -= this.remaining.step
+                this.remaining.perc = this.remaining.time * 100 / this.waitTime
+                if(this.remaining.perc === 0) clearInterval(this.remaining.interval)
+            }, this.remaining.step)
         },
         /**
          * Resalta una línea en el editor con un mensaje.

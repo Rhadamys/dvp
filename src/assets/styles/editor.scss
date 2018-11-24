@@ -40,6 +40,14 @@
             color: white !important;
         }
     }
+
+    &-ace {
+        height: 100%;
+
+        .md-progress-bar {
+            position: absolute;
+        }
+    }
 }
 
 .stepper-bottom {

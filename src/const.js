@@ -4,4 +4,6 @@ export default {
     EVENT_LIMIT_REACHED: 'instruction_limit_reached',
     EVENT_RAW_INPUT: 'raw_input',
     PROMPT: 'Ingrese el valor de la entrada en la consola para continuar',
+    TIME_DESKTOP: 1000,
+    TIME_MOBILE: 2000,
 }

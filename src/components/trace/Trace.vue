@@ -38,6 +38,7 @@ export default {
     watch: {
         stack: {
             handler() {
+                if(this.stack == undefined) return
                 this.torender = undefined
                 const torender = []
                 for(var i = 0; i < this.stack.length; i++) {
@@ -51,7 +52,6 @@ export default {
                     torender.push(scope)
                 }
                 this.torender = Object.assign([], this.torender, torender)
-                console.log('HANDLEDDDDDDDDD')
             },
             deep: true,
             immediate: true,
