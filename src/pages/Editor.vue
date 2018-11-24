@@ -98,7 +98,7 @@ export default {
             const script = localStorage.getItem('script')
             const payload = Object.assign({}, { script }, addPayload)
             this.$http
-                .post(process.env.ROOT_API + 'trace/', payload)
+                .post(process.env.ROOT_API + '/trace', payload)
                 .then(response => {
                     this.response(response.data)
                 })

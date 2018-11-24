@@ -1,4 +1,2 @@
-Django
-djangorestframework
-django-cors-headers
-django-webpack-loader
+Flask
+flask-cors

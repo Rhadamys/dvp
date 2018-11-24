@@ -275,6 +275,7 @@ class ObjectEncoder:
     else:
       # IMPORTED_FAUX_PRIMITIVE feature added on 2018-06-13:
       is_externally_defined = False # is dat defined in external (i.e., non-user) code?
+      """
       try:
         # some objects don't return anything for getsourcefile() but DO return
         # something legit for getmodule(). e.g., "from io import StringIO"
@@ -297,6 +298,7 @@ class ObjectEncoder:
             is_externally_defined = True
       except (AttributeError, TypeError):
         pass # fail soft
+      """
       my_id = id(dat)
 
       # if dat is an *real* object instance (and not some special built-in one

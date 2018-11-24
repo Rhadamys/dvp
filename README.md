@@ -9,7 +9,7 @@ El propósito de esta herramienta es apoyar a los estudiantes de cursos introduc
 
 ## Build
 
-### Django
+### Flask
 ``` bash
 # crear entorno virtual
 python3 -m venv venv
@@ -21,7 +21,8 @@ python3 -m venv venv
 pip install -r requirements.txt
 
 # iniciar servidor
-python manage.py runserver
+export FLASK_APP=run
+flask run
 ```
 
 ### Node
