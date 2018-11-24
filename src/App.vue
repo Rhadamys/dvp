@@ -4,17 +4,24 @@
             <md-button class="md-icon-button" @click="menuVisible = !menuVisible">
                 <md-icon>menu</md-icon>
             </md-button>
-            <span class="md-title">Depurador visual para Python</span>
+            <span class="md-title" style="flex: 1">Depurador visual para Python</span>
+            <md-button class="md-icon-button md-raised md-dense" :href="pollUrl" target="_blank" v-if="bp[$mq] === bp.xsmall">
+                <md-icon>bar_chart</md-icon>
+            </md-button>
+            <md-button class="md-raised" :href="pollUrl" target="_blank" v-else>
+                <md-icon>poll</md-icon>&ensp;Encuesta de evaluación
+            </md-button>
+            <md-button class="md-icon-button md-raised md-dense md-accent" :href="contactUrl" target="_blank" v-if="bp[$mq] <= bp.small">
+                <md-icon>contact_support</md-icon>
+            </md-button>
+            <md-button class="md-raised md-accent" :href="contactUrl" target="_blank" v-else>
+                <md-icon>contact_support</md-icon>&ensp;Informar problema o sugerencia
+            </md-button>
             <stepper class="stepper-bottom"></stepper>
         </md-app-toolbar>
         <md-app-drawer :md-active.sync="menuVisible">
-            <md-toolbar class="md-transparent flex-horizontal" md-elevation="0">
+            <md-toolbar class="md-transparent" md-elevation="0">
                 Simbología
-                <md-button class="md-icon-button md-raised md-primary"
-                    href="https://goo.gl/forms/5FVUR6pIyQaPUii43"
-                    target="_blank">
-                    <md-icon>poll</md-icon>
-                </md-button>
             </md-toolbar>
             <md-list>
                 <md-list-item>
@@ -78,7 +85,9 @@ import Stepper from '@/components/Stepper'
 export default {
     data: function() {
         return {
+            contactUrl: 'https://goo.gl/forms/RkbI0jGidSP2DWYn1',
             menuVisible: false,
+            pollUrl: 'https://goo.gl/forms/5FVUR6pIyQaPUii43',
         }
     },
     components: {

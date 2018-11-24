@@ -2,25 +2,24 @@
 
 $primary: md-get-palette-color(blue, A700);
 $secondary: md-get-palette-color(blue, A200);
-$accent: md-get-palette-color(amber, 900);
+$accent: #FF5252;
+$darkGrey: md-get-palette-color(grey, 900);
+$lightGrey: md-get-palette-color(grey, 700);
 $prompt: md-get-palette-color(purple, 200);
 $warning: md-get-palette-color(yellow, 200);
 $error: md-get-palette-color(deeporange, 200);
 
 @include md-register-theme("default", (
     primary: $primary,
-    accent: $accent,
     theme: dark
 ));
 
 @include md-register-theme("default-light", (
     primary: $primary,
-    accent: $accent,
 ));
 
 @include md-register-theme("secondary", (
     primary: $secondary,
-    accent: $accent,
     theme: dark
 ));
 

@@ -37,7 +37,7 @@ html, body {
     
     $boxDim: 20px;
     &-title {
-        background-color: md-get-palette-color(grey, 900) !important;
+        background-color: $darkGrey !important;
         font-size: 10px;
         text-align: center;
         width: 100%;
@@ -66,12 +66,6 @@ html, body {
     bottom: 0;
     width: 100%;
     z-index: 10;
-}
-
-.flex-horizontal {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
 }
 
 .md-app {
@@ -167,7 +161,7 @@ html, body {
     }
     
     &-about {
-        background-color: md-get-palette-color(grey, 700) !important;
+        background-color: $lightGrey !important;
     }
 
     &-danger {
@@ -203,6 +197,6 @@ html, body {
 
 /* Handle */
 ::-webkit-scrollbar-thumb {
-    background: md-get-palette-color(grey, 700) !important;; 
+    background: $lightGrey !important;; 
     border-radius: 10px;
 }

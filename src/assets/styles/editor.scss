@@ -31,7 +31,7 @@
     }
 
     &-limit-reached {
-        position: absolute;
+        position: absolute !important;
         bottom: 0;
         right: 0;
         background: md-get-palette-color(red, 700) !important;
@@ -54,7 +54,7 @@
     position: absolute;
     bottom: 0;
     left: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
 }
 
 .visual-panel {

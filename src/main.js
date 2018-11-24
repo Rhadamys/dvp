@@ -1,15 +1,28 @@
 // The Vue build version to load with the `import` command
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
+import VueMq from 'vue-mq'
 import App from './App'
 import router from './router'
 import axios from 'axios'
 import VueMaterial from 'vue-material'
 import 'vue-material/dist/vue-material.min.css'
+import 'vue-material/dist/theme/default-dark.css'
 require('@/assets/styles/base.scss')
 require('@/assets/styles/app.scss')
 
 Vue.use(VueMaterial)
+
+// Breakpoints
+Vue.use(VueMq, {
+    breakpoints: {
+        xsmall: 600,
+        small: 960,
+        medium: 1280,
+        large: 1920,
+        xlarge: Infinity,
+    }
+})
 
 // Encabezados CSRF Token
 axios.defaults.xsrfCookieName = 'csrftoken'
@@ -36,6 +49,17 @@ window.isMobile = function() {
 import VarData from '@/components/trace/VarData'
 Vue.component('var-data', VarData)
 Vue.mixin({
+    data: function() {
+        return {
+            bp: {
+                xsmall: 0,
+                small: 1,
+                medium: 2,
+                large: 3,
+                xlarge: 4,
+            },
+        }
+    },
     methods: {
         formData: function(object) {
             var fd = new FormData()

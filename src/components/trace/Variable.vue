@@ -25,21 +25,30 @@
                         v-html="value(scope.encoded_vars[varname])" v-else>
                     </div>
                 </div>
-                <div v-if="scope.prev_encoded_vars"
-                    v-for="(prev, index) in scope.prev_encoded_vars[varname]" :key="index"
-                    class="variable-values-box">
-                    <div class="variable-values-box-step selectable">
-                        <span @click="setStep(prev.step - 1)">{{ prev.step }}</span>
+                <div v-if="scope.prev_encoded_vars && scope.prev_encoded_vars[varname]" class="variable-values">
+                    <div v-for="(prev, index) in scope.prev_encoded_vars[varname].slice(0, maxPrevalues)" :key="index" class="variable-values-box">
+                        <div class="variable-values-box-step selectable">
+                            <span @click="setStep(prev.step - 1)">{{ prev.step }}</span>
+                        </div>
+                        <div class="variable-values-box-value variable-values-prev"
+                            :class="'variable-values-prev-' + type(prev.value)"
+                            v-if="type(prev.value) === vartypes.NUMBER || type(prev.value) === vartypes.STRING">
+                            {{ prev.value }}
+                        </div>
+                        <div class="variable-values-box-value variable-values-prev selectable"
+                            :class="'variable-values-prev-' + type(prev.value)"
+                            @click="show(varname, index)"
+                            v-html="value(prev.value)" v-else>
+                        </div>
                     </div>
-                    <div class="variable-values-box-value variable-values-prev"
-                        :class="'variable-values-prev-' + type(prev.value)"
-                        v-if="type(prev.value) === vartypes.NUMBER || type(prev.value) === vartypes.STRING">
-                        {{ prev.value }}
-                    </div>
-                    <div class="variable-values-box-value variable-values-prev selectable"
-                        :class="'variable-values-prev-' + type(prev.value)"
-                        @click="show(varname, index)"
-                        v-html="value(prev.value)" v-else>
+                    <div v-if="scope.prev_encoded_vars[varname].length > maxPrevalues">
+                        <div class="variable-values-box-step selectable">
+                            <span>...</span>
+                        </div>
+                        <div class="variable-values-box-value variable-values-prev">
+                            <md-icon>add</md-icon>
+                            <md-tooltip md-direction="left">Se muestran los últimos {{ maxPrevalues }} valores</md-tooltip>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -88,6 +97,7 @@ export default {
     data: function() {
         return {
             index: undefined,
+            maxPrevalues: window.isMobile() ? 3: 6,
             showDialog: false,
             variable: {
                 name: undefined,

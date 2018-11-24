@@ -1,18 +1,16 @@
 <template>
-    <md-card class="io" md-theme="console">
+    <md-card class="io">
         <md-card-actions md-alignment="space-between">
             <span class="md-title">Consola</span>
-            <md-switch v-model="history.active" value="0" @change="scrollDown">Historial</md-switch>
+            <md-switch v-model="history.active" value="0" @change="scrollDown" :disabled="history.cached.length === 0">Historial</md-switch>
         </md-card-actions>
         <md-card-content id="output" class="console">
             <div v-html="history.cached" v-if="history.active"></div>
             <div v-html="history.current" v-else></div>
-            <div class="console-prompt" v-if="input.request && !history.active">
-                <div>{{ input.request }}</div>
-                <input type="text"
-                    v-model="input.current"
-                    v-on:keyup.enter="submit"/>
-            </div>
+            <md-field v-if="input.request && !history.active">
+                <label>{{ input.request }}</label>
+                <md-textarea class="md-accent" v-model="input.current" @keyup.enter="submit" md-autogrow></md-textarea>
+            </md-field>
             <md-button class="md-fab md-mini console-empty"
                 v-if="history.active && history.cached.length > 0"
                 @click="clearHistory">
@@ -90,8 +88,9 @@ export default {
          * por el servidor y continuar la ejecución.
          */
         submit: function() {
-            this.stdout += this.input.request + ' ' + this.input.current
-            this.input.array.push(this.input.current)
+            const withoutBreak = this.input.current.replace('\n', '')
+            this.stdout += this.input.request + ' ' + withoutBreak
+            this.input.array.push(withoutBreak)
             this.$root.$emit(Events.SEND_INPUT, { raw_input_json: this.input.array })
             this.reset()
         },

@@ -3,7 +3,6 @@
         <div class="md-layout-item md-size-60 md-small-size-100">
             <md-card class="md-primary md-elevation-6 editor" md-theme="secondary">
                 <editor-toolbar :exceptions="exceptions" :stepping="stepping"></editor-toolbar>
-                <md-progress-bar class="md-accent progress-abs-bottom" md-mode="query" v-if="running"></md-progress-bar>
                 <editor></editor>
                 <md-button class="md-fab md-mini editor-limit-reached"
                     @click="exceptions.limit.dialog = true"
@@ -26,6 +25,10 @@
             <console class="md-elevation-6"></console>
             <trace v-if="!running" class="md-elevation-6" :stack="stack"></trace>
         </div>
+        <md-snackbar md-position="left" :md-duration="Infinity" :md-active.sync="running" md-theme="default-light" md-persistent>
+            <md-progress-spinner class="md-accent" :md-diameter="30" md-mode="indeterminate"></md-progress-spinner>
+            <span>Ejecutando código...</span>
+        </md-snackbar>
     </div>
 </template>
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
@@ -59,7 +62,7 @@ export default {
                 searching: true,
                 warnings: [],
             },
-            running: true,
+            running: false,
             stack: undefined,
             stepping: {
                 current: undefined,
@@ -94,8 +97,10 @@ export default {
          * @param addPayload Data adicional para enviar al servidor.
          */
         send: function(addPayload = {}) {
-            this.running = true
             const script = localStorage.getItem('script')
+            if(script === undefined || script.length === 0) return
+
+            this.running = true
             const payload = Object.assign({}, { script }, addPayload)
             this.$http
                 .post(process.env.ROOT_API + '/trace', payload)
@@ -142,6 +147,10 @@ export default {
          * @param index Número de paso de ejecución
          */
         renderStep: function(step, index) {
+            if(this.requested) {
+                console.log('Aborted!')
+                return
+            }
             if(step.event === Const.EVENT_LIMIT_REACHED) { // Límite de pasos
                 this.renderLimitReached(step, index - 1)
                 return
@@ -265,8 +274,10 @@ export default {
          */
         finishRender: function(step) {
             this.running = false
-            this.$root.$emit(Events.SCROLL_EDITOR, step.line)
-            this.stack = this.trace[this.stepping.current].stack_to_render
+            this.stack = step.stack_to_render
+
+            if(this.stepping.current < this.stepping.last)
+                this.$root.$emit(Events.SCROLL_EDITOR, step.line)
 
             if(step.stdout === undefined) return
             this.$root.$emit(Events.UPDATE_CONSOLE, step.stdout)

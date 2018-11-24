@@ -1,14 +1,4 @@
 @import "./base.scss";
-
-@import "~vue-material/dist/theme/engine";
-
-@include md-register-theme("console", (
-    primary: black,
-    accent: $secondary,
-    theme: dark
-));
-
-@import "~vue-material/dist/theme/all";
                  
 .io {
     background: black !important;
@@ -33,31 +23,8 @@
             width: 100%;
         }
 
-        &-prompt {
-            display: flex;
-
-            div {
-                width: auto;
-            }
-
-            input {
-                background: none;
-                color: white;
-                font-family: monospace;
-                white-space: pre;
-                border: none;
-                flex-grow: 1;
-                margin-left: 0.5em;
-                border-bottom: 2px solid $accent;
-            }
-
-            input:focus{
-                outline: none;
-            }
-        }
-
         &-empty {
-            position: absolute;
+            position: absolute !important;
             bottom: 4px;
             right: 6px;
         }

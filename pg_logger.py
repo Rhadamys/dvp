@@ -768,7 +768,6 @@ class PGLogger(bdb.Bdb):
                     prev_value = prev_scope['encoded_vars'][varname]
                     curr_value = curr_scope['encoded_vars'][varname]
                     if prev_value != curr_value:
-
                         last_step = len(self.trace)
                         prev_record = dict(step=last_step, value=prev_value)
                         if varname in prev_scope['prev_encoded_vars']:
@@ -951,13 +950,22 @@ class PGLogger(bdb.Bdb):
             exc_type_name = exc_type
         else: exc_type_name = exc_type.__name__
 
+        stack_to_render = self.trace[-1]['stack_to_render'] if self.trace else None
         if exc_type_name == 'RawInputException':
             raw_input_arg = str(exc_value.args[0]) # make sure it's a string so it's JSON serializable!
-            self.trace.append(dict(event='raw_input', prompt=raw_input_arg, line=self.prev_lineno, stdout=self.get_user_stdout()))
+            self.trace.append(dict(event='raw_input',
+                                   prompt=raw_input_arg,
+                                   line=self.prev_lineno,
+                                   stdout=self.get_user_stdout(),
+                                   stack_to_render=stack_to_render))
             self.done = True
         elif exc_type_name == 'MouseInputException':
             mouse_input_arg = str(exc_value.args[0]) # make sure it's a string so it's JSON serializable!
-            self.trace.append(dict(event='mouse_input', prompt=mouse_input_arg, line=self.prev_lineno, stdout=self.get_user_stdout()))
+            self.trace.append(dict(event='mouse_input',
+                                   prompt=mouse_input_arg,
+                                   line=self.prev_lineno,
+                                   stdout=self.get_user_stdout(),
+                                   stack_to_render=stack_to_render))
             self.done = True
         else:
             self.interaction(frame, exc_traceback, 'exception')
@@ -1445,8 +1453,8 @@ class PGLogger(bdb.Bdb):
                     stdout += ' | </i><i style="color: #' + ('FFCA28' if loop_type == 'for' else '4CAF50') + '">Ciclo: ' + str(current) + ' </i><i style="color:gray">(' + loop_type + ' línea ' + str(loop['line']) + ')'
                 stdout += '</i>\n'
 
-        if self.trace:
-            stack_to_render = self.check_variable_value_changes(self.trace[-1]['stack_to_render'], stack_to_render)
+            if self.trace:
+                stack_to_render = self.check_variable_value_changes(self.trace[-1]['stack_to_render'], stack_to_render)
 
         if self.show_only_outputs:
             trace_entry = dict(line=lineno,
@@ -1831,7 +1839,6 @@ class PGLogger(bdb.Bdb):
             # common case
             return dict(script_lines=self.executed_script_lines,
                         trace=self.trace)
-
 
 import json
 

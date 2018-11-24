@@ -3,7 +3,8 @@
         <md-progress-bar class="progress-abs-bottom"
             md-mode="determinate"
             :md-value="remaining.perc"
-            v-if="remaining.perc > 0"></md-progress-bar>
+            v-if="remaining.perc > 0"
+            :style="{ opacity: 1.25 - remaining.perc / 100 }"></md-progress-bar>
         <div id="ace-editor" class="editor-ace"></div>
     </div>
 </template>
@@ -45,9 +46,9 @@ export default {
     mounted: function() {
         this.ace.editor = ace.edit('ace-editor')
         this.ace.editor.session.setMode('ace/mode/python')
+        this.ace.editor.renderer.setScrollMargin(10, 10, 10, 10)
         this.ace.editor.session.on('change', this.change)
         this.ace.editor.session.setValue(localStorage.getItem('script'))
-        this.ace.editor.renderer.setScrollMargin(10, 10, 10, 10)
     },
     methods: {
         /**
@@ -57,23 +58,11 @@ export default {
             this.$root.$emit(Events.RESET)
             localStorage.setItem('script', this.ace.editor.session.getValue())
             clearTimeout(this.codeChangeTimeOut)
-            this.codeChangeTimeOut = setTimeout(() => {
-                this.reset()
-                this.$root.$emit(Events.RESET)
-                this.$root.$emit(Events.SEND_SCRIPT)
-            }, this.waitTime)
-
-            this.countDown()
-        },
-        countDown: function() {
+            
             clearInterval(this.remaining.interval)            
             this.remaining.perc = 100
             this.remaining.time = this.waitTime
-            this.remaining.interval = setInterval(() => {
-                this.remaining.time -= this.remaining.step
-                this.remaining.perc = this.remaining.time * 100 / this.waitTime
-                if(this.remaining.perc === 0) clearInterval(this.remaining.interval)
-            }, this.remaining.step)
+            this.remaining.interval = setInterval(this.tick, this.remaining.step)
         },
         /**
          * Resalta una línea en el editor con un mensaje.
@@ -96,6 +85,19 @@ export default {
             })
             this.ace.markers = []
         },
+        send: function() {
+            this.reset()
+            this.$root.$emit(Events.RESET)
+            this.$root.$emit(Events.SEND_SCRIPT)
+        },
+        tick: function() {
+            this.remaining.time -= this.remaining.step
+            this.remaining.perc = this.remaining.time * 100 / this.waitTime
+
+            if(this.remaining.perc > 0) return
+            clearInterval(this.remaining.interval)
+            this.send()
+        }
     }
 }
 </script>
