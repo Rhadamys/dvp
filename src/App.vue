@@ -5,17 +5,11 @@
                 <md-icon>menu</md-icon>
             </md-button>
             <span class="md-title" style="flex: 1">Depurador visual para Python</span>
-            <md-button class="md-icon-button md-raised md-dense" :href="pollUrl" target="_blank" v-if="bp[$mq] === bp.xsmall">
+            <md-button class="md-icon-button md-raised md-dense md-accent" :href="pollUrl" target="_blank" v-if="bp[$mq] === bp.xsmall">
                 <md-icon>bar_chart</md-icon>
             </md-button>
-            <md-button class="md-raised" :href="pollUrl" target="_blank" v-else>
+            <md-button class="md-raised md-accent" :href="pollUrl" target="_blank" v-else>
                 <md-icon>poll</md-icon>&ensp;Encuesta de evaluación
-            </md-button>
-            <md-button class="md-icon-button md-raised md-dense md-accent" :href="contactUrl" target="_blank" v-if="bp[$mq] <= bp.small">
-                <md-icon>contact_support</md-icon>
-            </md-button>
-            <md-button class="md-raised md-accent" :href="contactUrl" target="_blank" v-else>
-                <md-icon>contact_support</md-icon>&ensp;Informar problema o sugerencia
             </md-button>
             <stepper class="stepper stepper-bottom"></stepper>
         </md-app-toolbar>
@@ -65,11 +59,11 @@
                     <div class="md-subhead">Estudiante Ingeniería de Ejecución en Computación e Informática</div>
                 </md-card-header>
                 <md-card-content>
-                    Esta aplicación se encuentra en desarrollo y puede presentar inconsistencias. Si tienes alguna sugerencia o comentario, contáctame.
+                    Esta aplicación se encuentra en desarrollo y puede presentar inconsistencias. Si tienes alguna sugerencia o quieres informar un error, utiliza el formulario a continuación.
                 </md-card-content>
                 <md-card-actions>
-                    <md-button href="mailto:mario.alvarez.m@usach.cl">
-                        <md-icon>mail</md-icon>&ensp;mario.alvarez.m@usach.cl
+                    <md-button :href="contactUrl" target="_blank">
+                        <md-icon>contact_support</md-icon>&ensp;Informar error o sugerencia
                     </md-button>
                 </md-card-actions>
             </md-card>
