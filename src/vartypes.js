@@ -1,5 +1,6 @@
 export default {
     BOOLEAN: 'boolean',
+    CHAR: 'char',
     DICT: 'dict',
     FLOAT: 'float',
     FUNCTION: 'function',

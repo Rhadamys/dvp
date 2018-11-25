@@ -3,14 +3,14 @@
 .variable {
     display: flex;
     flex-direction: row;
-    margin-bottom: 8px;
+    margin-bottom: $small;
     align-items: center;
     border-radius: $borderRadius;
 
     &-name {
         background-color: transparent !important;
-        margin-right: 12px;
-        padding-left: 12px;
+        margin-right: $medium;
+        padding-left: $medium;
         min-width: 20%;
         white-space: nowrap;
         overflow: hidden;
@@ -21,14 +21,14 @@
     &-dict {
         display: flex;
         flex-direction: column;
-        padding: 8px;
+        padding: $small;
         width: fit-content !important;
         min-width: 100%;
 
         &-content {
             display: flex;
             flex-direction: row;
-            margin-bottom: 8px;
+            margin-bottom: $small;
         }
 
         &-key {
@@ -41,7 +41,7 @@
         }
 
         &-value {
-            padding: 8px;
+            padding: $small;
             height: 100%;
             width: 100%;
         }
@@ -50,7 +50,7 @@
     &-list {
         display: flex;
         flex-direction: row;
-        padding: 8px;
+        padding: $small;
         width: fit-content;
         height: fit-content;
 
@@ -64,14 +64,14 @@
                 line-height: 100% !important;
                 vertical-align: middle !important;
                 text-align: center !important;
-                margin-bottom: 8px;
+                margin-bottom: $small;
                 display: flex;
                 flex-direction: row;
                 align-items: stretch;
                 
                 &-index {
                     background-color: $itemBack;
-                    font-size: 8px;
+                    font-size: $small;
                     text-align: center;
                     height: auto;
                     width: auto;
@@ -79,7 +79,7 @@
                 }
     
                 &-value {
-                    padding: 8px;
+                    padding: $small;
                     height: 100%;
                     width: 100%;
                 }
@@ -93,12 +93,12 @@
             width: auto;
             vertical-align: middle !important;
             text-align: center !important;
-            margin-right: 8px;
+            margin-right: $small;
             height: 100% !important;
             
             &-index {
                 background-color: $itemBack;
-                font-size: 8px;
+                font-size: $small;
                 text-align: center;
                 width: 100%;
                 height: $boxDim;
@@ -106,7 +106,7 @@
             }
 
             &-value {
-                padding: 8px;
+                padding: $small;
                 height: 100%;
                 vertical-align: middle;
             }
@@ -136,26 +136,25 @@
         flex-direction: row;
         align-items: center;
 
-        $margin: 6px;
         &-identifier {
             background-color: md-get-palette-color(blue, 500) !important;
             min-width: 128px;
-            margin-right: 12px;
+            margin-right: $medium;
             border-radius: $borderRadius;
         }
 
         &-params {
             background-color: md-get-palette-color(orange, 500) !important;
-            margin-left: 12px;
-            margin-right: 12px;
+            margin-left: $medium;
+            margin-right: $medium;
         }
 
         &-param {
             background-color: white!important;
             color: gray;
             font-weight: bold;
-            margin-left: $margin;
-            padding: 12px;
+            margin-left: $small;
+            padding: $medium;
             border-radius: $borderRadius;
             width: auto;
         }
@@ -165,7 +164,50 @@
             font-size: 48px;
         }
         &-raw:last-child {
-            margin-left: $margin !important;
+            margin-left: $small !important;
+        }
+    }
+
+    &-unique {
+        display: flex;
+        flex-direction: column;
+        background-color: $lightGrey;
+        border-radius: $borderRadius;
+
+        &-text {
+            border-top-left-radius: $borderRadius;
+            border-top-right-radius: $borderRadius;
+            background-color: $darkGrey;
+            padding: $small;
+
+            &-input {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+
+                & > div {
+                    margin: 0;
+                    margin-left: $large;
+                }
+            }
+        }
+
+        &-type {
+            font-family: monospace;
+            color: $prompt;
+        }
+
+        &-content {
+            padding: $small;
+            width: 100%;
+        }
+
+        &-value {
+            border-radius: $borderRadius;
+            padding: $small;
+            width: max-content;
+            margin: auto;
         }
     }
 
@@ -193,7 +235,7 @@
             $stepboxDim: 14px;
             &-step {
                 background-color: md-get-palette-color(grey, 600) !important;
-                font-size: 8px;
+                font-size: $small;
                 text-align: center;
                 width: 100%;
                 height: $stepboxDim;
@@ -216,7 +258,7 @@
                 background-color: md-get-palette-color(blue, 500) !important;
             }
 
-            &-string {
+            &-string, &-char {
                 background-color: md-get-palette-color(orange, 500) !important;
             }
 
@@ -252,7 +294,7 @@
                 background-color: md-get-palette-color(blue, 300) !important;
             }
 
-            &-string {
+            &-string, &-char {
                 background-color: md-get-palette-color(orange, 300) !important;
             }
 

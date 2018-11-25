@@ -1,7 +1,7 @@
 <template>
     <md-table class="variable-matrix md-elevation-4">
         <md-table-row v-for="(row, i) in decode(variable)" :key="i">
-            <md-table-cell v-for="(elm, j) in row" :key="j"
+            <md-table-cell v-for="(elm, j) in decode(row)" :key="j"
                 class="variable-matrix-elm"
                 :class="'variable-values-current-' + type(elm)">
                 <var-data :variable="elm"></var-data>

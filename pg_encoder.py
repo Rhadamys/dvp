@@ -398,8 +398,7 @@ class ObjectEncoder:
         new_obj.append(final_type)
 
         for e in dat:
-          encoded = self.encode(e, get_parent, top=False)
-          new_obj.append(encoded[1:] if temp_type == 2 else encoded)
+          new_obj.append(self.encode(e, get_parent, top=not top))
       elif typ == tuple:
         new_obj.append('TUPLE')
         for e in dat:

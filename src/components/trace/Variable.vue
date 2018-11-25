@@ -22,7 +22,7 @@
                         <md-icon>navigate_before</md-icon>
                         <md-tooltip md-direction="left" v-if="!isMobile()">Más recientes...</md-tooltip>
                     </md-button>
-                    <div v-for="(prev, index) in subprevals" :key="index" class="variable-values-box list-complete-item">
+                    <div v-for="(prev, index) in subprevals" :key="index" class="variable-values-box">
                         <div class="variable-values-box-step selectable">
                             <span @click="setStep(prev.step - 1)">{{ prev.step }}</span>
                         </div>
@@ -65,7 +65,7 @@
                 </div>
             </md-dialog-title>
             <md-dialog-content>
-                <var-data :variable="variable.value"></var-data>
+                <var-data :detailed="true" :variable="variable.value"></var-data>
             </md-dialog-content>
             <md-dialog-actions>
                 <md-button class="md-primary" @click="showDialog = false">Cerrar</md-button>

@@ -27,16 +27,21 @@ export default {
                 case 'SPECIAL_FLOAT': return VarTypes.FLOAT
             }
         }
-            
+        
         const type = typeof variable
-        return (type === 'string' && variable.includes('.') && !isNaN(variable)) ? 'number' : type
+        if(type === 'number' && variable % 1 !== 0)
+            return VarTypes.FLOAT
+        else if(type === 'string' && variable.length === 1)
+            return VarTypes.CHAR
+
+        return type
     },
     value: function(variable) {
         const type = this.type(variable)
         switch(type) {
             case VarTypes.BOOLEAN: return variable ? 'True': 'False'
             case VarTypes.DICT: return '{ }'
-            case VarTypes.FLOAT: return variable[1]
+            case VarTypes.FLOAT: return variable[1] || variable
             case VarTypes.FUNCTION: return 'fx()'
             case VarTypes.LIST: return '[ ]'
             case VarTypes.LIST_OF_LISTS: return '<i class="md-icon md-icon-font md-theme-secondary">format_list_bulleted</i>'

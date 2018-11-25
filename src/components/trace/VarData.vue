@@ -38,8 +38,77 @@
             </div>
             <p class="text-center" v-else>Lista vacía</p>
         </div>
+        <div v-else-if="detailed && type(variable) === vartypes.MATRIX" class="variable-unique md-elevation-4">
+            <div class="variable-unique-text variable-unique-text-input">
+                <span>Matriz</span>
+                <md-switch v-model="other">Ver como lista de listas</md-switch>
+            </div>
+            <div class="variable-unique-content">
+                <div class="variable-unique-value variable-values-current-list variable-list-vertical" v-if="other">
+                    <list v-for="(val, idx) in decode(variable)" :key="idx"
+                        :depth="1"
+                        :index="idx"
+                        :variable="val"
+                        :vertical="true"
+                        class="variable-list-vertical-item md-elevation-4">
+                    </list>
+                </div>
+                <div class="variable-unique-value variable-values-current-list" v-else>
+                    <matrix :variable="variable"></matrix>
+                </div>
+            </div>
+        </div>
         <matrix v-else-if="type(variable) === vartypes.MATRIX" :variable="variable"></matrix>
         <funct v-else-if="type(variable) === vartypes.FUNCTION" :variable="decode(variable)"></funct>
+        <div v-else-if="type(variable) === vartypes.FLOAT && detailed" class="variable-unique md-elevation-4">
+            <div class="variable-unique-text">
+                Número con coma decimal [<b class="variable-unique-type">float</b>]
+            </div>
+            <div class="variable-unique-content">
+                <div class="variable-unique-value variable-values-current-float">
+                    {{ value(variable) }}
+                </div>
+            </div>
+        </div>
+        <div v-else-if="detailed && type(variable) === vartypes.NUMBER" class="variable-unique md-elevation-4">
+            <div class="variable-unique-text">
+                Número entero [<b class="variable-unique-type">int</b>]
+            </div>
+            <div class="variable-unique-content">
+                <div class="variable-unique-value variable-values-current-number">
+                    {{ value(variable) }}
+                </div>
+            </div>
+        </div>
+        <div v-else-if="detailed && type(variable) === vartypes.STRING" class="variable-unique md-elevation-4">
+            <div class="variable-unique-text variable-unique-text-input">
+                <span>Cadena de caracteres [<b class="variable-unique-type">string</b>]</span>
+                <md-switch v-model="other">Ver como lista</md-switch>
+            </div>
+            <div class="variable-unique-content">
+                <div class="variable-unique-value variable-values-current-list variable-list" v-if="other">
+                    <list v-for="(char, idx) in variable" :key="idx"
+                        :depth="1"
+                        :index="idx"
+                        :variable="char"
+                        class="variable-list-item md-elevation-4">
+                    </list>
+                </div>
+                <div class="variable-unique-value variable-values-current-string" v-else>
+                    {{ value(variable) }}
+                </div>
+            </div>
+        </div>
+        <div v-else-if="detailed && type(variable) === vartypes.CHAR" class="variable-unique md-elevation-4">
+            <div class="variable-unique-text">
+                Caracter [<b class="variable-unique-type">char</b>]
+            </div>
+            <div class="variable-unique-content">
+                <div class="variable-unique-value variable-values-current-char">
+                    {{ value(variable) }}
+                </div>
+            </div>
+        </div>
         <div v-else>
             <span>{{ value(variable) }}</span>
         </div>
@@ -56,10 +125,11 @@ import Matrix from '@/components/trace/types/Matrix'
 
 export default {
     name: 'var-data',
-    props: ['variable'],
+    props: ['detailed', 'variable'],
     data: function() {
         return {
             vartypes: VarTypes,
+            other: false,
         }
     },
     components: {
