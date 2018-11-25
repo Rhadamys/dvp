@@ -17,7 +17,7 @@
             <md-button class="md-raised md-accent" :href="contactUrl" target="_blank" v-else>
                 <md-icon>contact_support</md-icon>&ensp;Informar problema o sugerencia
             </md-button>
-            <stepper class="stepper-bottom"></stepper>
+            <stepper class="stepper stepper-bottom"></stepper>
         </md-app-toolbar>
         <md-app-drawer :md-active.sync="menuVisible">
             <md-toolbar class="md-transparent" md-elevation="0">

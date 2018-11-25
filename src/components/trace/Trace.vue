@@ -5,7 +5,15 @@
                 :id="'tab-scope-' + index"
                 :md-label="scope.func_name">
                 <div v-if="scope.ordered_varnames.length > 0">
-                    <variable :scope="scope"></variable>
+                    <md-content class="variable variable-return" v-if="scope.returned">
+                        <md-content class="variable-name">Valor retornado</md-content>
+                        <var-data :variable="scope.returned"
+                            class="variable-values"></var-data>
+                    </md-content>
+                    <variable v-for="varname in scope.ordered_varnames" :key="varname"
+                        :current="scope.encoded_vars[varname]"
+                        :prevals="scope.prev_encoded_vars[varname]"
+                        :varname="varname"></variable>
                 </div>
                 <div v-else>
                     <p class="text-center">Aún no se ha definido alguna variable</p>

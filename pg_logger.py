@@ -757,26 +757,21 @@ class PGLogger(bdb.Bdb):
         """
         
         for scope_i in range(min(len(prev), len(current))):
-            prev_scope = prev[scope_i].copy()
-            curr_scope = current[scope_i].copy()
+            prev_scope = prev[scope_i]
+            curr_scope = current[scope_i]
             
-            if 'prev_encoded_vars' in prev_scope:
-                for varname in prev_scope['ordered_varnames']:
-                    if varname in prev_scope['prev_encoded_vars']:
-                        curr_scope['prev_encoded_vars'][varname] = prev_scope['prev_encoded_vars'][varname]
+            for varname in prev_scope['ordered_varnames']:
+                has_prevals = varname in prev_scope['prev_encoded_vars']
+                if has_prevals:
+                    curr_scope['prev_encoded_vars'][varname] = prev_scope['prev_encoded_vars'][varname]
 
-                    prev_value = prev_scope['encoded_vars'][varname]
-                    curr_value = curr_scope['encoded_vars'][varname]
-                    if prev_value != curr_value:
-                        last_step = len(self.trace)
-                        prev_record = dict(step=last_step, value=prev_value)
-                        if varname in prev_scope['prev_encoded_vars']:
-                            curr_scope['prev_encoded_vars'][varname] = [prev_record] + prev_scope['prev_encoded_vars'][varname]
-                        else:
-                            curr_scope['prev_encoded_vars'][varname] = [prev_record]
-#                        curr_scope['prev_encoded_vars'][varname] = curr_scope['prev_encoded_vars'][varname][:8]
-                
-                current[scope_i] = curr_scope
+                prev_value = prev_scope['encoded_vars'][varname]
+                curr_value = curr_scope['encoded_vars'][varname]
+                if not curr_value == prev_value:
+                    prev_record = dict(step=len(self.trace), value=prev_value)
+                    curr_scope['prev_encoded_vars'][varname] = [prev_record] + curr_scope['prev_encoded_vars'][varname] if has_prevals else []
+            
+            current[scope_i] = curr_scope
 
         return current.copy()
 
@@ -1407,6 +1402,7 @@ class PGLogger(bdb.Bdb):
                 hash_str += '_z'
 
             e['unique_hash'] = hash_str
+            e['prev_encoded_vars'] = dict()
 
 
         # handle probe_exprs *before* encoding the heap with self.encoder.get_heap
@@ -1431,30 +1427,31 @@ class PGLogger(bdb.Bdb):
         stack_to_render = [global_scope] + stack_to_render
         stdout = self.get_user_stdout()
 
-        if event_type == 'step_line':
-            current_scope = stack_to_render[-1]
-            registered = self.register_loop(lineno, current_scope)
-            deleted = None
-            if registered:
-                prev_scope = self.trace[-1]['stack_to_render'][-1]
-                deleted = self.update_loop(lineno, current_scope, prev_scope)
-                
-            if self.prev_lineno > 0 and self.executed_script_lines[self.prev_lineno - 1].strip().startswith('print'):
-                if stdout.endswith('\n'):
-                    stdout = stdout[:-1]
-                
-                trace_len = len(self.trace) + 1
-                stdout += '&emsp;<i style="color: gray"> ... Paso: ' + str(trace_len)
+        current_scope = stack_to_render[-1]
+        registered = self.register_loop(lineno, current_scope)
+        deleted = None
+        # Registra nuevos loops (while y for)
+        if registered:
+            prev_scope = self.trace[-1]['stack_to_render'][-1]
+            deleted = self.update_loop(lineno, current_scope, prev_scope)
+            
+        # Agrega información de en qué pasó se imprimió y si fue dentro de un ciclo
+        if self.prev_lineno > 0 and self.executed_script_lines[self.prev_lineno - 1].strip().startswith('print'):
+            if stdout.endswith('\n'):
+                stdout = stdout[:-1]
+            
+            trace_len = len(self.trace) + 1
+            stdout += '&emsp;<i style="color: gray"> ... Paso: ' + str(trace_len)
 
-                loop = deleted if deleted else self.loop_stack[-1] if self.loop_stack else None
-                if loop:
-                    current = loop['current'] if lineno == loop['line'] else loop['current'] + 1
-                    loop_type = loop['loop_type']
-                    stdout += ' | </i><i style="color: #' + ('FFCA28' if loop_type == 'for' else '4CAF50') + '">Ciclo: ' + str(current) + ' </i><i style="color:gray">(' + loop_type + ' línea ' + str(loop['line']) + ')'
-                stdout += '</i>\n'
+            loop = deleted if deleted else self.loop_stack[-1] if self.loop_stack else None
+            if loop:
+                current = loop['current'] if lineno == loop['line'] else loop['current'] + 1
+                loop_type = loop['loop_type']
+                stdout += ' | </i><i style="color: #' + ('FFCA28' if loop_type == 'for' else '4CAF50') + '">Ciclo: ' + str(current) + ' </i><i style="color:gray">(' + loop_type + ' línea ' + str(loop['line']) + ')'
+            stdout += '</i>\n'
 
-            if self.trace:
-                stack_to_render = self.check_variable_value_changes(self.trace[-1]['stack_to_render'], stack_to_render)
+        if self.trace:
+            stack_to_render = self.check_variable_value_changes(self.trace[-1]['stack_to_render'], stack_to_render)
 
         if self.show_only_outputs:
             trace_entry = dict(line=lineno,

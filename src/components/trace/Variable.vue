@@ -1,11 +1,6 @@
 <template>
     <div>
-        <md-content class="variable variable-return" v-if="scope.returned">
-            <md-content class="variable-name">Valor retornado</md-content>
-            <var-data :variable="scope.returned"
-                class="variable-values"></var-data>
-        </md-content>
-        <md-content class="variable" v-for="varname in scope.ordered_varnames" :key="varname">
+        <md-content class="variable">
             <div class="variable-name">
                 {{ varname }}
             </div>
@@ -15,18 +10,24 @@
                         <span>Actual</span>
                     </div>
                     <div class="variable-values-box-value variable-values-current"
-                        :class="'variable-values-current-' + type(scope.encoded_vars[varname])"
-                        v-if="type(scope.encoded_vars[varname]) === vartypes.NUMBER || type(scope.encoded_vars[varname]) === vartypes.STRING">
-                        {{ scope.encoded_vars[varname] }}
+                        :class="'variable-values-current-' + type(current)"
+                        v-if="type(current) === vartypes.NUMBER || type(current) === vartypes.STRING">
+                        {{ current }}
                     </div>
                     <div class="variable-values-box-value variable-values-current selectable"
-                        :class="'variable-values-current-' + type(scope.encoded_vars[varname])"
+                        :class="'variable-values-current-' + type(current)"
                         @click="show(varname)"
-                        v-html="value(scope.encoded_vars[varname])" v-else>
+                        v-html="value(current)" v-else>
                     </div>
                 </div>
-                <div v-if="scope.prev_encoded_vars && scope.prev_encoded_vars[varname]" class="variable-values">
-                    <div v-for="(prev, index) in scope.prev_encoded_vars[varname].slice(0, maxPrevalues)" :key="index" class="variable-values-box">
+                <div v-if="prevals" class="variable-values">
+                    <div class="variable-values-box variable-values-prev selectable"
+                        v-if="prevals.length > prevalsRange.max && prevalsRange.start > 0"
+                        @click="prevalsRange.start -= 1">
+                        <md-icon>navigate_before</md-icon>
+                        <md-tooltip md-direction="left">Más recientes...</md-tooltip>
+                    </div>
+                    <div v-for="(prev, index) in subprevals" :key="index" class="variable-values-box list-complete-item">
                         <div class="variable-values-box-step selectable">
                             <span @click="setStep(prev.step - 1)">{{ prev.step }}</span>
                         </div>
@@ -41,14 +42,11 @@
                             v-html="value(prev.value)" v-else>
                         </div>
                     </div>
-                    <div v-if="scope.prev_encoded_vars[varname].length > maxPrevalues">
-                        <div class="variable-values-box-step selectable">
-                            <span>...</span>
-                        </div>
-                        <div class="variable-values-box-value variable-values-prev">
-                            <md-icon>add</md-icon>
-                            <md-tooltip md-direction="left">Se muestran los últimos {{ maxPrevalues }} valores</md-tooltip>
-                        </div>
+                    <div class="variable-values-box variable-values-prev selectable"
+                        v-if="prevals.length > prevalsRange.max && prevalsRange.start < prevals.length - prevalsRange.max - 1"
+                        @click="prevalsRange.start += 1">
+                        <md-icon>navigate_next</md-icon>
+                        <md-tooltip md-direction="left">Anteriores...</md-tooltip>
                     </div>
                 </div>
             </div>
@@ -56,15 +54,15 @@
         <md-dialog :md-active.sync="showDialog">
             <md-dialog-title>
                 <div>
-                    <span class="md-title">{{ variable.name }}</span>
+                    <span class="md-title">{{ varname }}</span>
                     <md-chip class="md-step">
                         {{ index === 0 ? 'Valor actual' : 'Valor hasta el paso ' + variable.step }}
                     </md-chip>
                 </div>
-                <div class="md-stepping" v-if="scope.prev_encoded_vars[variable.name]">
+                <div class="md-stepping" v-if="prevals">
                     <md-button class="md-icon-button md-dense"
                         @click="index += 1"
-                        v-bind:disabled="index === scope.prev_encoded_vars[variable.name].length">
+                        v-bind:disabled="index === prevals.length">
                         <md-icon>navigate_before</md-icon>
                         <md-tooltip md-direction="top">Anterior</md-tooltip>
                     </md-button>
@@ -93,14 +91,16 @@ import Methods from '@/components/trace/methods'
 import VarData from '@/components/trace/VarData'
 
 export default {
-    props: ['scope'],
+    props: ['current', 'prevals', 'varname'],
     data: function() {
         return {
             index: undefined,
-            maxPrevalues: window.isMobile() ? 3: 6,
+            prevalsRange: {
+                max: window.isMobile() ? 3: 6,
+                start: 0,
+            },
             showDialog: false,
             variable: {
-                name: undefined,
                 step: undefined,
                 value: undefined,
             },
@@ -113,7 +113,6 @@ export default {
     methods: {
         ...Methods,
         show: function(varname, index) {
-            this.variable.name = varname
             this.index = index === undefined ? 0 : index + 1
             this.setVar()
             this.showDialog = true
@@ -122,17 +121,19 @@ export default {
             this.$root.$emit(Events.SET_STEP, step)
         },
         setVar: function() {
-            const variable = this.index > 0 ? this.scope.prev_encoded_vars[this.variable.name] : 
-                                              this.scope.encoded_vars[this.variable.name]
-            if(this.scope.prev_encoded_vars) {
-                const len = this.scope.prev_encoded_vars.length
-                const selected = this.index > 0 ? variable[this.index - 1] : variable
+            if(this.prevals) {
+                const selected = this.index > 0 ? this.prevals[this.index - 1] : current
                 const value = selected.value || selected
                 this.variable.step = selected.step
                 this.variable.value = value
             } else
                 this.variable.value = this.decode(variable)
         },
+    },
+    computed: {
+        subprevals: function() {
+            return this.prevals.slice(this.prevalsRange.start, this.prevalsRange.start + this.prevalsRange.max)
+        }
     },
     watch: {
         index: function() {

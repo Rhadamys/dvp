@@ -226,9 +226,10 @@
         &-current {
             background-color: md-get-palette-color(bluegrey, 500) !important;
             padding: 6px;
-            min-width: 38px;
             height: 32px;
             text-align: center !important;
+            min-width: 38px;
+            width: max-content;
 
             &-number, &-float {
                 background-color: md-get-palette-color(blue, 500) !important;
