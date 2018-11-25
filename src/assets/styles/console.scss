@@ -19,8 +19,25 @@
         padding: 20px;
         overflow-y: auto;
 
-        div {
+        &-item {
             width: 100%;
+        }
+
+        &-prompt {
+            &-input {
+                margin-bottom: 8px;
+            }
+            
+            &-send {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+
+                & > div, button {
+                    margin: 0 !important;
+                }
+            }
         }
 
         &-empty {

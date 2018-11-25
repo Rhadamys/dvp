@@ -33,7 +33,7 @@ export default {
                 step: 100,
                 time: 0,
             },
-            waitTime: window.isMobile() ? Const.TIME_MOBILE : Const.TIME_DESKTOP,
+            waitTime: this.isMobile() ? Const.TIME_MOBILE : Const.TIME_DESKTOP,
         }
     },
     created: function() {

@@ -760,7 +760,10 @@ class PGLogger(bdb.Bdb):
             prev_scope = prev[scope_i]
             curr_scope = current[scope_i]
             
-            for varname in prev_scope['ordered_varnames']:
+            for varname in curr_scope['ordered_varnames']:
+                if not varname in prev_scope['ordered_varnames']:
+                    continue
+                    
                 has_prevals = varname in prev_scope['prev_encoded_vars']
                 if has_prevals:
                     curr_scope['prev_encoded_vars'][varname] = prev_scope['prev_encoded_vars'][varname]
@@ -769,11 +772,13 @@ class PGLogger(bdb.Bdb):
                 curr_value = curr_scope['encoded_vars'][varname]
                 if not curr_value == prev_value:
                     prev_record = dict(step=len(self.trace), value=prev_value)
-                    curr_scope['prev_encoded_vars'][varname] = [prev_record] + curr_scope['prev_encoded_vars'][varname] if has_prevals else []
-            
+                    if has_prevals:
+                        curr_scope['prev_encoded_vars'][varname].insert(0, prev_record)
+                    else:
+                        curr_scope['prev_encoded_vars'][varname] = [prev_record]
             current[scope_i] = curr_scope
 
-        return current.copy()
+        return current
 
     def should_hide_var(self, var):
         for re_match in self.vars_to_hide:
@@ -1424,7 +1429,7 @@ class PGLogger(bdb.Bdb):
                             encoded_vars=encoded_globals,
                             ordered_varnames=ordered_globals,
                             prev_encoded_vars=dict())
-        stack_to_render = [global_scope] + stack_to_render
+        stack_to_render.insert(0, global_scope)
         stdout = self.get_user_stdout()
 
         current_scope = stack_to_render[-1]

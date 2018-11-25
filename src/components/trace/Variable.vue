@@ -9,49 +9,39 @@
                     <div class="variable-values-box-step">
                         <span>Actual</span>
                     </div>
-                    <div class="variable-values-box-value variable-values-current"
-                        :class="'variable-values-current-' + type(current)"
-                        v-if="type(current) === vartypes.NUMBER || type(current) === vartypes.STRING">
-                        {{ current }}
-                    </div>
                     <div class="variable-values-box-value variable-values-current selectable"
                         :class="'variable-values-current-' + type(current)"
-                        @click="show(varname)"
-                        v-html="value(current)" v-else>
+                        @click="show()"
+                        v-html="value(current)">
                     </div>
                 </div>
                 <div v-if="prevals" class="variable-values">
-                    <div class="variable-values-box variable-values-prev selectable"
+                    <md-button class="md-icon-button md-raised md-dense"
                         v-if="prevals.length > prevalsRange.max && prevalsRange.start > 0"
                         @click="prevalsRange.start -= 1">
                         <md-icon>navigate_before</md-icon>
-                        <md-tooltip md-direction="left">Más recientes...</md-tooltip>
-                    </div>
+                        <md-tooltip md-direction="left" v-if="!isMobile()">Más recientes...</md-tooltip>
+                    </md-button>
                     <div v-for="(prev, index) in subprevals" :key="index" class="variable-values-box list-complete-item">
                         <div class="variable-values-box-step selectable">
                             <span @click="setStep(prev.step - 1)">{{ prev.step }}</span>
                         </div>
-                        <div class="variable-values-box-value variable-values-prev"
-                            :class="'variable-values-prev-' + type(prev.value)"
-                            v-if="type(prev.value) === vartypes.NUMBER || type(prev.value) === vartypes.STRING">
-                            {{ prev.value }}
-                        </div>
                         <div class="variable-values-box-value variable-values-prev selectable"
                             :class="'variable-values-prev-' + type(prev.value)"
-                            @click="show(varname, index)"
-                            v-html="value(prev.value)" v-else>
+                            @click="show(index + prevalsRange.start)"
+                            v-html="value(prev.value)">
                         </div>
                     </div>
-                    <div class="variable-values-box variable-values-prev selectable"
-                        v-if="prevals.length > prevalsRange.max && prevalsRange.start < prevals.length - prevalsRange.max - 1"
+                    <md-button class="md-icon-button md-raised md-dense"
+                        v-if="prevals.length > prevalsRange.max && prevalsRange.start < prevals.length - prevalsRange.max"
                         @click="prevalsRange.start += 1">
                         <md-icon>navigate_next</md-icon>
-                        <md-tooltip md-direction="left">Anteriores...</md-tooltip>
-                    </div>
+                        <md-tooltip md-direction="left" v-if="!isMobile()">Anteriores...</md-tooltip>
+                    </md-button>
                 </div>
             </div>
         </md-content>
-        <md-dialog :md-active.sync="showDialog">
+        <md-dialog :md-active.sync="showDialog" class="variable-dialog">
             <md-dialog-title>
                 <div>
                     <span class="md-title">{{ varname }}</span>
@@ -83,7 +73,7 @@
         </md-dialog>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/trace.scss"></style>
+<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
 import Events from '@/events'
 import VarTypes from '@/vartypes'
@@ -96,7 +86,7 @@ export default {
         return {
             index: undefined,
             prevalsRange: {
-                max: window.isMobile() ? 3: 6,
+                max: this.isMobile() ? 3: 6,
                 start: 0,
             },
             showDialog: false,
@@ -112,7 +102,7 @@ export default {
     },
     methods: {
         ...Methods,
-        show: function(varname, index) {
+        show: function(index) {
             this.index = index === undefined ? 0 : index + 1
             this.setVar()
             this.showDialog = true
@@ -122,17 +112,18 @@ export default {
         },
         setVar: function() {
             if(this.prevals) {
-                const selected = this.index > 0 ? this.prevals[this.index - 1] : current
+                const selected = this.index > 0 ? this.prevals[this.index - 1] : this.current
                 const value = selected.value || selected
                 this.variable.step = selected.step
                 this.variable.value = value
             } else
-                this.variable.value = this.decode(variable)
+                this.variable.value = this.current
         },
     },
     computed: {
         subprevals: function() {
-            return this.prevals.slice(this.prevalsRange.start, this.prevalsRange.start + this.prevalsRange.max)
+            const end = this.prevalsRange.start + this.prevalsRange.max
+            return this.prevals.slice(this.prevalsRange.start, end)
         }
     },
     watch: {

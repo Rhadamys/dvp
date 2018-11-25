@@ -5,12 +5,20 @@
             <md-switch v-model="history.active" value="0" @change="scrollDown" :disabled="history.cached.length === 0">Historial</md-switch>
         </md-card-actions>
         <md-card-content id="output" class="console">
-            <div v-html="history.cached" v-if="history.active"></div>
-            <div v-html="history.current" v-else></div>
-            <md-field v-if="input.request && !history.active">
-                <label>{{ input.request }}</label>
-                <md-textarea class="md-accent" v-model="input.current" @keyup.enter="submit" md-autogrow></md-textarea>
-            </md-field>
+            <div class="console-item" v-html="history.cached" v-if="history.active"></div>
+            <div class="console-item" v-html="history.current" v-else></div>
+            <div class="console-item console-prompt" v-if="input.request && !history.active">
+                <md-field class="console-prompt-input">
+                    <label>{{ input.request }}</label>
+                    <md-textarea v-model="input.current" @keyup.enter="submit(true)"></md-textarea>
+                </md-field>
+                <div class="console-prompt-send" v-if="input.request && !history.active">
+                    <md-checkbox class="md-primary" v-model="input.enter">Enter para enviar</md-checkbox>
+                    <md-button class="md-primary md-dense md-raised" v-show="!input.enter" @click="submit(false)">
+                        <md-icon>send</md-icon>&ensp;Enviar
+                    </md-button>
+                </div>
+            </div>
             <md-button class="md-fab md-mini console-empty"
                 v-if="history.active && history.cached.length > 0"
                 @click="clearHistory">
@@ -33,9 +41,10 @@ export default {
                 current: '',
             },
             input: {
-                request: undefined,
+                array: [],
                 current: '',
-                array: [], 
+                enter: true,
+                request: undefined,
             }
         }
     },
@@ -72,7 +81,6 @@ export default {
         clearHistory: function() {
             this.history.cached = ''
             this.history.active = false
-            this.setOut()
         },
         /**
          * Hace scroll a la consola hasta el final, para mostrar las salidas más recientes.
@@ -87,9 +95,11 @@ export default {
          * Envía los datos ingresados por el usuario en el input para ser procesados
          * por el servidor y continuar la ejecución.
          */
-        submit: function() {
-            const withoutBreak = this.input.current.replace('\n', '')
-            this.stdout += this.input.request + ' ' + withoutBreak
+        submit: function(enterPressed) {
+            if(!this.input.enter && enterPressed) return
+            const breakReplace = this.input.current.replace(/\\n/g, '\n')
+            const withoutBreak = this.input.enter ? breakReplace.substr(0, this.input.current.length - 1) : breakReplace
+            this.history.current += this.input.request + ' ' + withoutBreak.replace(/\n/g, '<br>')
             this.input.array.push(withoutBreak)
             this.$root.$emit(Events.SEND_INPUT, { raw_input_json: this.input.array })
             this.reset()
