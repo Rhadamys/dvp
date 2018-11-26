@@ -10,10 +10,10 @@
             <div class="console-item console-prompt" v-if="input.request && !history.active">
                 <md-field class="console-prompt-input">
                     <label>{{ input.request }}</label>
-                    <md-textarea v-model="input.current" @keyup.enter="submit(true)"></md-textarea>
+                    <md-textarea :value="input.current" @input="input.current = $event" @keyup.enter="submit(true)"></md-textarea>
                 </md-field>
                 <div class="console-prompt-send" v-if="input.request && !history.active">
-                    <md-checkbox class="md-primary" v-model="input.enter">Enter para enviar</md-checkbox>
+                    <md-checkbox class="md-primary" v-model="input.enter">Presionar <b>"ENTER"</b> para enviar</md-checkbox>
                     <md-button class="md-primary md-dense md-raised" v-show="!input.enter" @click="submit(false)">
                         <md-icon>send</md-icon>&ensp;Enviar
                     </md-button>
@@ -98,7 +98,8 @@ export default {
         submit: function(enterPressed) {
             if(!this.input.enter && enterPressed) return
             const breakReplace = this.input.current.replace(/\\n/g, '\n')
-            const withoutBreak = this.input.enter ? breakReplace.substr(0, this.input.current.length - 1) : breakReplace
+            const last = breakReplace.length - 1
+            const withoutBreak = this.input.enter && breakReplace[last] == '\n' ? breakReplace.substr(0, last) : breakReplace
             this.history.current += this.input.request + ' ' + withoutBreak.replace(/\n/g, '<br>')
             this.input.array.push(withoutBreak)
             this.$root.$emit(Events.SEND_INPUT, { raw_input_json: this.input.array })
