@@ -217,7 +217,6 @@
 
     &-values {
         background-color: $lighterGrey !important;
-        width: 500px;
         padding: 4px;
         border-radius: $borderRadius;
         display: flex;
@@ -225,6 +224,7 @@
         align-items: center;
         overflow-x: auto !important;
         overflow-y: hidden !important;
+        flex: 1;
 
         &-box {
             margin: 0 !important;

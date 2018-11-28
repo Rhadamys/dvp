@@ -12,16 +12,18 @@
                 <md-tooltip md-direction="top">Advertencias</md-tooltip>
             </md-button>
         </div>
-        <div class="editor-actions" v-if="stepping.last">
+        <div class="editor-actions">
             <md-button class="md-icon-button md-dense"
                 @click="emitRender(stepping.current - 1)"
-                v-bind:disabled="stepping.current === 0">
+                v-bind:disabled="stepping.current === 0"
+                v-if="stepping.last">
                 <md-icon>navigate_before</md-icon>
                 <md-tooltip md-direction="top">Retroceder</md-tooltip>
             </md-button>
             <md-button class="md-icon-button md-dense"
                 @click="emitRender(stepping.current + 1)"
-                v-bind:disabled="stepping.current === stepping.last">
+                v-bind:disabled="stepping.current === stepping.last"
+                v-if="stepping.last">
                 <md-icon>navigate_next</md-icon>
                 <md-tooltip md-direction="top">Avanzar</md-tooltip>
             </md-button>

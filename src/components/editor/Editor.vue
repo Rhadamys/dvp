@@ -20,18 +20,22 @@ export default {
                 editor: {},
                 markers: [],
             },
+            offline: {
+                requested: false,
+                script: undefined,
+            },
             /**
              * Timer para enviar código automáticamente al servidor luego de cumplirse
              * un breve periodo de tiempo sin realizar modificaciones en el editor, es
              * decir, cuando el usuario deja de escribir.
              */
-            codeChangeTimeOut: undefined,
             remaining: {
                 interval: undefined,
                 perc: 0,
                 step: 100,
                 time: 0,
             },
+            requested: false,
         }
     },
     created: function() {
@@ -39,6 +43,11 @@ export default {
         this.$root.$on(Events.HIGHLIGHT, this.highlight)
         this.$root.$on(Events.SCROLL_EDITOR, (line) => {
             this.ace.editor.scrollToLine(line, true, true)
+        })
+        this.$on(Events.GO_OFFLINE, () => this.offline.script = this.ace.editor.session.getValue())
+        this.$on(Events.GO_ONLINE, () => {
+            const last_script = localStorage.getItem('script')
+            if(this.offline.requested && this.offline.script !== last_script) this.send() 
         })
     },
     mounted: function() {
@@ -54,7 +63,14 @@ export default {
          */
         change: function(delta) {
             localStorage.setItem('script', this.ace.editor.session.getValue())
-            clearTimeout(this.codeChangeTimeOut)
+
+            if(this.isOffline && !this.offline.requested) {
+                // Para enviar el código cuando se restablezca la conexión
+                this.offline.requested = true
+                // Eliminar marcas del editor
+                this.reset()
+                return
+            }
             
             clearInterval(this.remaining.interval)            
             this.remaining.perc = 100
@@ -75,18 +91,31 @@ export default {
             const marker_id = this.ace.editor.session.addMarker(new Range(row, 0, row, 1), type, 'fullLine')
             this.ace.markers.push(marker_id)
         },
+        /**
+         * Restablece las marcas del editor.
+         */
         reset: function() {
             this.ace.editor.getSession().setAnnotations([])
             this.ace.markers.map(marker => {
                 this.ace.editor.session.removeMarker(marker)
             })
             this.ace.markers = []
+            this.offline.requested = false
         },
+        /**
+         * Emite eventos para restablecer todos los componentes de la aplicación relacionados
+         * con la ejecución del código del usuario y enviar el código actual para su procesamiento
+         * en el servidor.
+         */
         send: function() {
             this.$root.$emit(Events.RESET)
             this.$root.$emit(Events.SEND_SCRIPT)
             this.reset()
         },
+        /**
+         * Este procedimiento se ejecuta en cada tick del intervalo de cuenta regresiva
+         * una vez que se modifica el código.
+         */
         tick: function() {
             this.remaining.time -= this.remaining.step
             this.remaining.perc = this.remaining.time * 100 / this.waitTime

@@ -1,6 +1,6 @@
 <template>
     <div class="container md-layout md-gutter">
-        <div class="md-layout-item md-size-60 md-small-size-100">
+        <div class="md-layout-item md-size-50 md-small-size-100">
             <md-card class="md-primary md-elevation-6 editor" md-theme="secondary">
                 <editor-toolbar :exceptions="exceptions" :stepping="stepping"></editor-toolbar>
                 <editor></editor>
@@ -21,11 +21,11 @@
                 </md-dialog>
             </md-card>
         </div>
-        <div class="md-layout-item md-layout-item md-size-40  md-small-size-100 visual-panel">
+        <div class="md-layout-item md-size-50 md-small-size-100 visual-panel">
             <console class="md-elevation-6"></console>
             <trace v-if="!running" class="md-elevation-6" :stack="stack"></trace>
         </div>
-        <md-snackbar md-position="left" :md-duration="Infinity" :md-active.sync="running" md-theme="default-light" md-persistent>
+        <md-snackbar md-position="left" :md-duration="Infinity" :md-active.sync="running" md-theme="default-light">
             <md-progress-spinner class="md-accent" :md-diameter="30" md-mode="indeterminate"></md-progress-spinner>
             <span>Ejecutando código...</span>
         </md-snackbar>
@@ -105,6 +105,14 @@ export default {
                 .post(process.env.ROOT_API + '/trace', { ...addPayload, script })
                 .then(response => {
                     this.response(response.data)
+                })
+                .catch(e => {
+                    this.running = false
+                    this.$root.$emit(Events.SHOW_SNACK, { 
+                        className: 'card-danger', 
+                        duration: 5000,
+                        message: Const.ERR_CONNECTION,
+                    })
                 })
         },
         /**

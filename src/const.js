@@ -1,4 +1,5 @@
 export default {
+    ERR_CONNECTION: 'Error de comunicación con el servidor. Intenta enviar el código nuevamente <u>en unos instantes</u>.',
     EVENT_EXCEPTION: 'exception',
     EVENT_UNCAUGHT_EXCEPTION: 'uncaught_exception',
     EVENT_LIMIT_REACHED: 'instruction_limit_reached',

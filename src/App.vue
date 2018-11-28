@@ -11,10 +11,10 @@
             <md-button class="md-raised" @click="showMenuTutorial" v-else>
                 <md-icon>help</md-icon>&ensp;Tutorial
             </md-button>
-            <md-button class="md-icon-button md-raised md-dense md-accent" :href="pollUrl" target="_blank" v-if="bp[$mq] <= bp.xsmall">
+            <md-button class="md-icon-button md-raised md-dense md-accent" :href="poll.url" target="_blank" v-if="bp[$mq] <= bp.xsmall">
                 <md-icon>bar_chart</md-icon>
             </md-button>
-            <md-button class="md-raised md-accent" :href="pollUrl" target="_blank" v-else>
+            <md-button class="md-raised md-accent" :href="poll.url" target="_blank" v-else>
                 <md-icon>poll</md-icon>&ensp;Encuesta de evaluación
             </md-button>
             <stepper class="stepper stepper-bottom"></stepper>
@@ -77,7 +77,7 @@
                 </md-list-item>
                 <md-list-item>
                     <md-content class="symbol symbol-bold variable-values-current-string">S</md-content>
-                    <span class="md-list-item-text">String y caracter</span>
+                    <span class="md-list-item-text">String o caracter</span>
                 </md-list-item>
                 <md-list-item>
                     <md-content class="symbol symbol-bold variable-values-current-list">[]</md-content>
@@ -160,19 +160,54 @@
             <transition name="component-fade" mode="out-in">
                 <router-view></router-view>
             </transition>
+            <md-snackbar class="card-danger" md-position="center" :md-duration="Infinity" :md-active="isOffline" md-theme="default-light" md-persistent>
+                <span><u>Se ha perdido la conexión a internet</u>. Los cambios que realices se enviarán para su ejecución una vez que recuperes la conexión...</span>
+            </md-snackbar>
+            <md-snackbar md-position="center" :md-duration="snack.duration" :md-active.sync="snack.show" md-theme="default-light" :class="snack.className" md-persistent>
+                <span v-html="snack.message"></span>
+            </md-snackbar>
+            <md-dialog :md-active.sync="poll.show" @md-clicked-outside="resetTimer">
+                <md-dialog-title>¡Gracias por utilizar la aplicación!</md-dialog-title>
+                <md-dialog-content>
+                    Por favor, contesta esta <u>breve encuesta</u> para conocer tu opinión sobre el estado actual
+                    de la plataforma. Son cerca de 10 preguntas, no te tomará más de <u>2 minutos</u>!
+                </md-dialog-content>
+                <md-dialog-actions>
+                    <md-button class="md-primary" @click="dismissPoll(false)" :href="poll.url" target="_blank">Sí</md-button>
+                    <md-button class="md-primary" @click="resetTimer">Quizás más tarde</md-button>
+                    <md-button class="md-primary" @click="dismissPoll(true)">No</md-button>
+                </md-dialog-actions>
+            </md-dialog>
+            <md-dialog-alert
+                :md-active.sync="poll.later"
+                md-title="Oh... No pasa nada! ;)"
+                md-content="Puedes contestar la encuesta en cualquier momento presionando el botón rojo en la <u>esquina superior derecha</u> de la aplicación." />
         </md-app-content>
     </md-app>
 </template>
 <style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
+import Events from '@/events'
 import Stepper from '@/components/Stepper'
 
 export default {
     data: function() {
         return {
             contactUrl: 'https://goo.gl/forms/RkbI0jGidSP2DWYn1',
-            pollUrl: 'https://goo.gl/forms/5FVUR6pIyQaPUii43',
+            poll: {
+                lapse: 180000, // 3 minutos
+                later: false,
+                show: false,
+                timer: undefined,
+                url: 'https://goo.gl/forms/5FVUR6pIyQaPUii43',
+            },
             showMenu: false,
+            snack: {
+                className: undefined,
+                duration: undefined,
+                message: undefined,
+                show: false,
+            },
             tutorial: {
                 expanded: true,
                 show: false,
@@ -183,10 +218,38 @@ export default {
     components: {
         'stepper': Stepper,
     },
+    created: function() {
+        this.$root.$on(Events.SHOW_SNACK, this.showSnack)
+
+        // Crea un timer para contestar encuesta, si es que no se ha marcado para "ignorarla"
+        const encuesta = localStorage.getItem('encuesta')
+        if(encuesta === this.poll.url) return
+        this.poll.timer = setTimeout(() => {
+            this.poll.show = true
+        }, this.poll.lapse)
+    },
     methods: {
+        dismissPoll: function(later) {
+            localStorage.setItem('encuesta', this.poll.url)
+            this.poll.show = false
+            this.poll.later = later
+        },
+        resetTimer: function() {
+            clearTimeout(this.poll.timer)
+            this.poll.timer = setTimeout(() => {
+                this.poll.show = true
+            }, this.poll.lapse)
+            this.poll.show = false
+        },
         showMenuTutorial: function() {
             this.tutorial.expanded = true
             this.showMenu = true
+        },
+        showSnack: function({ className, duration, message }) {
+            this.snack.className = className
+            this.snack.duration = duration
+            this.snack.message = message
+            this.snack.show = true
         },
         showTutorial: function(step) {
             this.tutorial.step = step

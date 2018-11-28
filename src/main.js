@@ -1,10 +1,12 @@
 // The Vue build version to load with the `import` command
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
-import VueMq from 'vue-mq'
 import App from './App'
 import router from './router'
-import axios from 'axios'
+
+import VueOffline from 'vue-offline'
+Vue.use(VueOffline)
+
 import VueMaterial from 'vue-material'
 import 'vue-material/dist/vue-material.min.css'
 import 'vue-material/dist/theme/default-dark.css'
@@ -14,6 +16,7 @@ require('@/assets/styles/app.scss')
 Vue.use(VueMaterial)
 
 // Breakpoints
+import VueMq from 'vue-mq'
 Vue.use(VueMq, {
     breakpoints: {
         xxsmall: 600,
@@ -28,20 +31,12 @@ Vue.use(VueMq, {
 // Encabezados CSRF Token
 axios.defaults.xsrfCookieName = 'csrftoken'
 axios.defaults.xsrfHeaderName = 'X-CSRFToken'
+
 // Axios por defecto para requests
+import axios from 'axios'
 Vue.prototype.$http = axios
 
-// Formato de fechas
-Date.prototype.toString = function() {
-    const day = this.getDate()
-    const month = this.getMonth() + 1
-    const year = this.getFullYear()
-    const hours = this.getHours()
-    const mins = this.getMinutes()
-    const sec = this.getSeconds()
-    return day + '/' + month + '/' + year + ' ' + (hours < 10 ? '0': '') + hours + ':' + (mins < 10 ? '0': '') + mins + ':' + (sec < 10 ? '0': '') + sec
-}
-
+// Constantes
 import VarData from '@/components/trace/VarData'
 Vue.component('var-data', VarData)
 
@@ -75,6 +70,17 @@ Vue.mixin({
         },
     }
 })
+
+// Formato de fechas
+Date.prototype.toString = function() {
+    const day = this.getDate()
+    const month = this.getMonth() + 1
+    const year = this.getFullYear()
+    const hours = this.getHours()
+    const mins = this.getMinutes()
+    const sec = this.getSeconds()
+    return day + '/' + month + '/' + year + ' ' + (hours < 10 ? '0': '') + hours + ':' + (mins < 10 ? '0': '') + mins + ':' + (sec < 10 ? '0': '') + sec
+}
 
 Vue.config.productionTip = false
 new Vue({

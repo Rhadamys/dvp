@@ -17,7 +17,7 @@
                 </div>
                 <div v-if="prevals" class="variable-values">
                     <md-button class="md-icon-button md-raised md-dense"
-                        v-if="prevals.length > prevalsRange.max && prevalsRange.start > 0"
+                        v-if="prevals.length > showMax && prevalsRange.start > 0"
                         @click="prevalsRange.start -= 1">
                         <md-icon>navigate_before</md-icon>
                         <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.recent }} más recientes...</md-tooltip>
@@ -33,7 +33,7 @@
                         </div>
                     </div>
                     <md-button class="md-icon-button md-raised md-dense"
-                        v-if="prevals.length > prevalsRange.max && prevalsRange.start < prevals.length - prevalsRange.max"
+                        v-if="prevals.length > showMax && prevalsRange.start < prevals.length - showMax"
                         @click="prevalsRange.start += 1">
                         <md-icon>navigate_next</md-icon>
                         <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.prev }} más anteriores...</md-tooltip>
@@ -86,7 +86,6 @@ export default {
         return {
             index: undefined,
             prevalsRange: {
-                max: this.isMobile() ? 3: 6,
                 prev: 0,
                 recent: 0,
                 start: 0,
@@ -123,9 +122,17 @@ export default {
         },
     },
     computed: {
+        showMax: function() {
+            const bp = this.bp[this.$mq]
+            return bp === this.bp.xxsmall ? 4 :
+                   bp === this.bp.xsmall ? 8 :
+                   bp === this.bp.small ? 10 :
+                   bp === this.bp.medium ? 6 :
+                   bp === this.bp.large ? 10 : 16
+        },
         subprevals: function() {
             const len = this.prevals.length
-            const end = this.prevalsRange.start + this.prevalsRange.max
+            const end = this.prevalsRange.start + this.showMax
             this.prevalsRange.recent = this.prevalsRange.start
             this.prevalsRange.prev = len - end
             return this.prevals.slice(this.prevalsRange.start, end)
