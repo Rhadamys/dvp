@@ -16,7 +16,8 @@ Vue.use(VueMaterial)
 // Breakpoints
 Vue.use(VueMq, {
     breakpoints: {
-        xsmall: 600,
+        xxsmall: 600,
+        xsmall: 780,
         small: 960,
         medium: 1280,
         large: 1920,
@@ -43,16 +44,21 @@ Date.prototype.toString = function() {
 
 import VarData from '@/components/trace/VarData'
 Vue.component('var-data', VarData)
+
+import Const from '@/const'
 Vue.mixin({
     data: function() {
         return {
             bp: {
-                xsmall: 0,
-                small: 1,
-                medium: 2,
-                large: 3,
-                xlarge: 4,
+                xxsmall: 0,
+                xsmall: 1,
+                small: 2,
+                medium: 3,
+                large: 4,
+                xlarge: 5,
             },
+            minSteps: 6,
+            waitTime: this.isMobile() ? Const.TIME_MOBILE : Const.TIME_DESKTOP,
         }
     },
     methods: {

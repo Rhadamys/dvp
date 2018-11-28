@@ -3,8 +3,6 @@
 $primary: md-get-palette-color(blue, A700);
 $secondary: md-get-palette-color(blue, A200);
 $accent: #FF5252;
-$darkGrey: md-get-palette-color(grey, 900);
-$lightGrey: md-get-palette-color(grey, 700);
 $prompt: md-get-palette-color(purple, 200);
 $warning: md-get-palette-color(yellow, 200);
 $error: md-get-palette-color(deeporange, 200);
@@ -25,6 +23,18 @@ $error: md-get-palette-color(deeporange, 200);
 
 @import "~vue-material/dist/theme/all";
 
+$darkGrey: md-get-palette-color(grey, 900);
+$lightGrey: md-get-palette-color(grey, 700);
+$lighterGrey: md-get-palette-color(grey, 500);
+
+.scrollable {
+    overflow: auto !important;
+}
+
+.full-height {
+    height: 100%;
+}
+
 $headerHeight: 36px;
 $borderRadius: 4px;
 
@@ -32,3 +42,37 @@ $xsmall: 6px;
 $small: 8px;
 $medium: 12px;
 $large: 16px;
+
+@mixin xsmall {
+    @media (max-width: 599px) {
+        @content;
+    }
+ }
+@mixin small {
+    @media (max-width: 959px) {
+        @content;
+    }
+ }
+ @mixin medium {
+    @media (max-width: 1259px) {
+        @content;
+    }
+ }
+ @mixin large {
+    @media (max-width: 1919px) {
+        @content;
+    }
+ }
+ @mixin xlarge {
+    @media (min-width: 1920) {
+        @content;
+    }
+ }
+
+ .component-fade-enter-active, .component-fade-leave-active {
+     transition: opacity .3s ease;
+ }
+ .component-fade-enter, .component-fade-leave-to
+   /* .component-fade-leave-active below version 2.1.8 */ {
+     opacity: 0;
+ }

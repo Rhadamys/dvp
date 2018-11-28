@@ -20,7 +20,7 @@
                         v-if="prevals.length > prevalsRange.max && prevalsRange.start > 0"
                         @click="prevalsRange.start -= 1">
                         <md-icon>navigate_before</md-icon>
-                        <md-tooltip md-direction="left" v-if="!isMobile()">Más recientes...</md-tooltip>
+                        <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.recent }} más recientes...</md-tooltip>
                     </md-button>
                     <div v-for="(prev, index) in subprevals" :key="index" class="variable-values-box">
                         <div class="variable-values-box-step selectable">
@@ -36,7 +36,7 @@
                         v-if="prevals.length > prevalsRange.max && prevalsRange.start < prevals.length - prevalsRange.max"
                         @click="prevalsRange.start += 1">
                         <md-icon>navigate_next</md-icon>
-                        <md-tooltip md-direction="left" v-if="!isMobile()">Anteriores...</md-tooltip>
+                        <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.prev }} más anteriores...</md-tooltip>
                     </md-button>
                 </div>
             </div>
@@ -87,6 +87,8 @@ export default {
             index: undefined,
             prevalsRange: {
                 max: this.isMobile() ? 3: 6,
+                prev: 0,
+                recent: 0,
                 start: 0,
             },
             showDialog: false,
@@ -122,7 +124,10 @@ export default {
     },
     computed: {
         subprevals: function() {
+            const len = this.prevals.length
             const end = this.prevalsRange.start + this.prevalsRange.max
+            this.prevalsRange.recent = this.prevalsRange.start
+            this.prevalsRange.prev = len - end
             return this.prevals.slice(this.prevalsRange.start, end)
         }
     },

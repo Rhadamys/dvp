@@ -11,7 +11,6 @@
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
 <style lang="scss" src="@/assets/styles/ace.scss"></style>
 <script>
-import Const from '@/const'
 import Events from '@/events'
 
 export default {
@@ -33,7 +32,6 @@ export default {
                 step: 100,
                 time: 0,
             },
-            waitTime: this.isMobile() ? Const.TIME_MOBILE : Const.TIME_DESKTOP,
         }
     },
     created: function() {
@@ -55,7 +53,6 @@ export default {
          * Callback para "onChange" de Ace Editor.
          */
         change: function(delta) {
-            this.$root.$emit(Events.RESET)
             localStorage.setItem('script', this.ace.editor.session.getValue())
             clearTimeout(this.codeChangeTimeOut)
             
@@ -86,9 +83,9 @@ export default {
             this.ace.markers = []
         },
         send: function() {
-            this.reset()
             this.$root.$emit(Events.RESET)
             this.$root.$emit(Events.SEND_SCRIPT)
+            this.reset()
         },
         tick: function() {
             this.remaining.time -= this.remaining.step

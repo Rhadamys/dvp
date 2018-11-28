@@ -101,9 +101,8 @@ export default {
             if(script === undefined || script.length === 0) return
 
             this.running = true
-            const payload = Object.assign({}, { script }, addPayload)
             this.$http
-                .post(process.env.ROOT_API + '/trace', payload)
+                .post(process.env.ROOT_API + '/trace', { ...addPayload, script })
                 .then(response => {
                     this.response(response.data)
                 })

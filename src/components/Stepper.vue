@@ -2,7 +2,7 @@
     <input type="range" class="md-elevation-1" min="0"
         v-bind:max="stepping.last"
         v-model.number="stepping.current"
-        v-if="stepping.last > 5"
+        v-if="stepping.last >= minSteps"
         @input="setStep"/>
 </template>
 <script>

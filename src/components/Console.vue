@@ -57,6 +57,7 @@ export default {
         this.$root.$on(Events.RESET, () => {
             this.reset()
             this.input.array = []
+            this.history.current = ''
         })
     },
     mounted: function() {

@@ -216,7 +216,7 @@
     }
 
     &-values {
-        background-color:  md-get-palette-color(grey, 500) !important;
+        background-color: $lighterGrey !important;
         width: 500px;
         padding: 4px;
         border-radius: $borderRadius;
