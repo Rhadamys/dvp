@@ -378,7 +378,7 @@ class ObjectEncoder:
 
       if typ == list:
         temp_type = 0
-        if top:
+        if top and dat:
           i = 0
           temp_len = None
           temp_type = 2

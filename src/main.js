@@ -34,10 +34,12 @@ axios.defaults.xsrfHeaderName = 'X-CSRFToken'
 
 // Axios por defecto para requests
 import axios from 'axios'
-Vue.prototype.$http = axios
+Vue.prototype.$http = axios.create({
+    baseURL: process.env.ROOT_API,
+})
 
 // Constantes
-import VarData from '@/components/trace/VarData'
+import VarData from '@/components/trace/variable/VarData'
 Vue.component('var-data', VarData)
 
 import Const from '@/const'
@@ -52,8 +54,6 @@ Vue.mixin({
                 large: 4,
                 xlarge: 5,
             },
-            minSteps: 6,
-            waitTime: this.isMobile() ? Const.TIME_MOBILE : Const.TIME_DESKTOP,
         }
     },
     methods: {

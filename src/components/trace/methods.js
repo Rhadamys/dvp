@@ -5,13 +5,24 @@ export default {
         const base = 80 + depth * 25
         return 'rgb(' + base + ', ' + base + ', ' + (base + 10) + ')'
     },
-    decode: function(value) {
-        const type = this.type(value)
-        if(type === VarTypes.DICT || type.includes(VarTypes.LIST) || type === VarTypes.MATRIX)
+    decode: function(value, vartype = undefined) {
+        const type = vartype || this.type(value)
+        if(type === VarTypes.DICT || type.includes(VarTypes.LIST) || type === VarTypes.MATRIX) {
             return value.slice(1)
-        else if(type === VarTypes.FUNCTION) {
+        } else if(type === VarTypes.FUNCTION) {
             const func = value[1].replace('(', ',').replace(')', '').replace(/\s/g, '').split(',')
             return { name: func[0], params: func.slice(1) }
+        } else if(type === VarTypes.STRING) {
+            return value.replace(/\b\n\b/g, '<br>')
+        } else if(type === VarTypes.NUMBER || type === VarTypes.FLOAT) {
+            const parts = value.toString().split('.')
+            const number = parts[0]
+            const base = number.length % 3 || 3
+            const steps = Math.floor(number.length / 3) + (base === 3 ? 0 : 1)
+            let formatted = number.substr(0, base)
+            for(let i = 1; i < steps; i ++)
+                formatted += '.' + number.substr(i * base, 3)
+            return parts.length === 2 ? formatted + ',' + parts[1] : formatted
         }
         return value
     },

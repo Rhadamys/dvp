@@ -28,7 +28,8 @@
                 <md-tooltip md-direction="top">Avanzar</md-tooltip>
             </md-button>
             <md-button class="md-icon-button md-dense"
-                @click="refresh">
+                @click="refresh"
+                v-if="isOnline">
                 <md-icon>refresh</md-icon>
                 <md-tooltip md-direction="top">Volver a ejecutar</md-tooltip>
             </md-button>

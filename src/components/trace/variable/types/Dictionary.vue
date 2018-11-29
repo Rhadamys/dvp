@@ -11,17 +11,11 @@
 </template>
 <style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
-import VarTypes from '@/vartypes'
 import Methods from '@/components/trace/methods'
 
 export default {
     name: 'dict',
     props: ['depth', 'dkey', 'variable'],
-    data: function() {
-        return {
-            vartypes: VarTypes,
-        }
-    },
     methods: Methods,
 }
 </script>

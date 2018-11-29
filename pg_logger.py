@@ -37,6 +37,7 @@ import bdb # the KEY import here!
 import re
 import traceback
 import types
+import copy
 
 # TODO: use the 'six' package to smooth out Py2 and Py3 differences
 is_python3 = (sys.version_info[0] == 3)
@@ -54,6 +55,22 @@ import pg_encoder
 # infinite loops
 #MAX_EXECUTED_LINES = 300
 MAX_EXECUTED_LINES = 1000 # on 2016-05-01, I increased the limit from 300 to 1000 for Python due to popular user demand! and I also improved the warning message
+MAX_RECURSIVE_CALLS = 100
+
+# Mensajes
+MAX_EXECUTED_LINES_REACHED = '''Actualmente se pueden ejecutar hasta {0} pasos.
+                                   Por favor, considera:<ul><li>Disminuir el largo del código</li>
+                                   <li><b>¿Habrá un loop infinito?</b></li></ul>'''
+MAX_RECURSIVE_CALLS_REACHED = '''La función <u>{0}</u> se ha llamado {1} veces sin 
+                                retornar algún valor. Por favor, comprueba que no hayan <u>llamados 
+                                recursivos</u> que impidan retornar un valor. Aquí algunos ejemplos:
+                                <div class="md-layout md-gutter" style="margin-top: 12px; margin-bottom: 12px;"> <div class="md-layout-item"> <div class="md-card" style="margin-bottom: 12px;"> <div class="md-card-content code"> <div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionRecursiva</div><div>(res):</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-reserved">if </div><div>res == </div><div class="code-num">1</div><div>:</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-indent"></div><div class="code-reserved">return </div><div class="code-num">1</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-reserved">else</div><div>:</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-indent"></div><div class="code-reserved">return </div><div>funcionRecursiva(res - </div><div class="code-num">1</div><div>)</div></div><div class="code-line"></div><div class="code-line"> <div>funcionRecursiva(</div><div class="code-num">101</div><div>)</div></div></div></div></div><div class="md-layout-item"> <div class="md-card"> <div class="md-card-content code"> <div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionA</div><div>():</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div>funcionB()</div></div><div class="code-line"></div><div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionB</div><div>():</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div>funcionA()</div></div><div class="code-line"></div><div class="code-line"> </div><div>funcionA()</div></div></div></div></div></div>
+                                Si has generado estos llamados recursivos a propósito, por favor 
+                                considera <u>disminuir el tamaño de la entrada</u> para no superar 
+                                este límite.'''
+OPEN_NOT_SUPPORTED = '''Aún no se puede utilizar open().
+                        Puedes utilizar {0} para simular 
+                        un archivo.'''
 
 #DEBUG = False
 DEBUG = True
@@ -118,18 +135,6 @@ def globToRegex(pat):
 def compileGlobMatch(pattern):
     # very important to use match and *not* search!
     return re.compile(globToRegex(pattern)).match
-
-# test globToRegex and compileGlobMatch
-'''
-for e in ('_*', '__*', '__*__', '*_$'):
-    stuff = compileGlobMatch(e)
-    for s in ('_test', 'test_', '_test_', '__test', '__test__'):
-        print(e, s, stuff(s) is not None)
-'''
-
-
-TRY_ANACONDA_STR = '\n\nYou can also try "Python 3.6 with Anaconda (experimental)",\nwhich is slower but lets you import many more modules.\n'
-
 
 # simple sandboxing scheme:
 #
@@ -228,7 +233,7 @@ def __restricted_import__(*args):
             lines_to_print.append(all_allowed_imports[i:i + ENTRIES_PER_LINE])
         pretty_printed_imports = ',\n  '.join([', '.join(e) for e in lines_to_print])
 
-        raise ImportError('{0} not found or not supported\nOnly these modules can be imported:\n  {1}{2}'.format(args[0], pretty_printed_imports, TRY_ANACONDA_STR))
+        raise ImportError('El módulo {0} no se ha encontrado o no está soportado actualmente.\nSólo se pueden importar estos módulos:\n  {1}'.format(args[0], pretty_printed_imports))
 
 
 # Support interactive user input by:
@@ -252,20 +257,15 @@ input_string_queue = []
 
 def open_wrapper(*args):
     if is_python3:
-        raise Exception('''open() is not supported by Python Tutor.
-  Instead use io.StringIO() to simulate a file.
-  Example: http://goo.gl/uNvBGl''' + TRY_ANACONDA_STR)
+        raise Exception(OPEN_NOT_SUPPORTED.format('io.StringIO()'))
     else:
-        raise Exception('''open() is not supported by Python Tutor.
-  Instead use StringIO.StringIO() to simulate a file.
-  Example: http://goo.gl/Q9xQ4p''' + TRY_ANACONDA_STR)
+        raise Exception(OPEN_NOT_SUPPORTED.format('StringIO.StringIO()'))
 
 # create a more sensible error message for unsupported features
 def create_banned_builtins_wrapper(fn_name):
     def err_func(*args):
-        raise Exception("'" + fn_name + "' is not supported by Python Tutor." + TRY_ANACONDA_STR)
+        raise Exception("'" + fn_name + "' is not supported by Python Tutor.")
     return err_func
-
 
 class RawInputException(Exception):
     pass
@@ -315,68 +315,6 @@ BANNED_BUILTINS = [] # 2018-06-15 don't ban any builtins since that's just secur
 # Peter says 'apply' isn't dangerous, so don't ban it
 
 IGNORE_VARS = set(('__builtins__', '__name__', '__exception__', '__doc__', '__package__'))
-
-
-'''
-2013-12-26
-
-Okay, what's with this f_valuestack business?
-
-If you compile your own CPython and patch Objects/frameobject.c to add a
-Python accessor for f_valuestack, then you can actually access the value
-stack, which is useful for, say, grabbbing the objects within
-list/set/dict comprehensions as they're being built. e.g., try:
-
-    z = [x*y for x in range(5) for y in range(5)]
-
-Note that on pythontutor.com, I am currently running custom-compiled
-versions of Python-2.7.6 and Python-3.3.3 with this f_valuestack hack.
-Unless you run your own custom CPython, you won't get these benefits.
-- update as of 2018-06-16: I don't think the above has been true for a while
-
-
-Patch:
-
- static PyObject *
- frame_getlineno(PyFrameObject *f, void *closure)
- {
-     return PyLong_FromLong(PyFrame_GetLineNumber(f));
- }
-
-+// copied from Py2crazy, which was for Python 2, but let's hope this still works!
-+static PyObject *
-+frame_getvaluestack(PyFrameObject* f) {
-+    // pgbovine - TODO: will this memory leak? hopefully not,
-+    // since all other accessors seem to follow the same idiom
-+    PyObject* lst = PyList_New(0);
-+    if (f->f_stacktop != NULL) {
-+        PyObject** p = NULL;
-+        for (p = f->f_valuestack; p < f->f_stacktop; p++) {
-+            PyList_Append(lst, *p);
-+        }
-+    }
-+
-+    return lst;
-+}
-+
- /* Setter for f_lineno - you can set f_lineno from within a trace function in
-  * order to jump to a given line of code, subject to some restrictions.  Most
-  * lines are OK to jump to because they don't make any assumptions about the
-@@ -368,6 +384,11 @@
-
- static PyGetSetDef frame_getsetlist[] = {
-     {"f_locals",        (getter)frame_getlocals, NULL, NULL},
-     {"f_lineno",        (getter)frame_getlineno,
-                     (setter)frame_setlineno, NULL},
-     {"f_trace",         (getter)frame_gettrace, (setter)frame_settrace, NULL},
-+
-+    // pgbovine
-+    {"f_valuestack",(getter)frame_getvaluestack,
-+                    (setter)NULL /* don't let it be set */, NULL},
-+
-     {0}
- };
-'''
 
 # at_global_scope should be true only if 'frame' represents the global scope
 def get_user_globals(frame, at_global_scope=False):
@@ -613,9 +551,19 @@ class PGLogger(bdb.Bdb):
 
         self.registered_loops = [] # Loops registrados
         self.loop_stack = [] # Para guardar loops
-        self.known_loop_scopes = dict()
 
-    def register_loop(self, lineno, current_scope):
+    def register_loop(self, lineno):
+        """
+        Registra un nuevo loop. De esta forma se le puede hacer seguimiento
+        a su ejecución para ver, por ejemplo, qué operaciones se realizan dentro
+        y fuera de un ciclo.
+
+        Args:
+            lineno (int): Número de la línea que se está ejecutando actualmente.
+
+        Returns:
+            bool: True, si ya se registró este loop y necesita actualizarse.
+        """
         if lineno in self.registered_loops:
             return True
 
@@ -652,37 +600,35 @@ class PGLogger(bdb.Bdb):
             loop = dict(condition=' '.join(line_parts[1:]))
         else:
             return False
-
-        lineno_str = str(lineno)
-        ordered_varnames = []
-        if lineno_str in self.known_loop_scopes:
-            ordered_varnames = self.known_loop_scopes[lineno_str]['inner']
-        else:
-            self.known_loop_scopes[lineno_str] = dict(outer=current_scope['ordered_varnames'], inner=[])
             
         loop_type = line_parts[0]
         loop.update(dict(line=lineno,
                          loop_type=loop_type,
                          line_parts=line_parts,
-                         encoded_vars=dict(),
-                         ordered_varnames=ordered_varnames),
-                         current=0)
+                         current=0))
         self.registered_loops.append(lineno)
         self.loop_stack.append(loop)
         return False
 
-    def update_loop(self, lineno, current_scope, prev_scope):
+    def update_loop(self, lineno):
+        """ 
+        Actualiza la información del loop actual, tales como el ciclo en que
+        va. Si es un for, también actualiza el elemento iterable.
+        TODO: En el front, animaciones para for?
+
+        Args:
+            lineno (int): Número de la línea que se está ejecutando actualmente.
+
+        Returns:
+            any: Devuelve el objeto del loop si éste ya terminó, porque no se agrega
+                al stack de salida en la traza.
+        """
         loop = dict(self.loop_stack[-1])
         current = loop['current']
-        encoded_vars = dict(loop['encoded_vars'])
         loop_type = loop['loop_type']
 
         if loop['line'] == lineno:
             current += 1
-            for varname in encoded_vars:
-                current_trace = list(encoded_vars[varname])
-                current_trace.append(None)
-                encoded_vars[varname] = current_trace
 
         if loop_type == 'for':
             last = len(loop['iterable']) - 1
@@ -695,39 +641,13 @@ class PGLogger(bdb.Bdb):
             self.registered_loops.pop()
             self.loop_stack.pop()
             return loop
-        
-        if current == 0:
-            lineno_str = str(loop['line'])
-            outer = list(self.known_loop_scopes[lineno_str]['outer'])
-            i = 0
-            while i < len(outer):
-                varname = outer[i]
-                if (varname in current_scope['ordered_varnames'] and
-                    current_scope['encoded_vars'][varname] == prev_scope['encoded_vars'][varname] and
-                    self.should_ignore_var(current_scope['encoded_vars'][varname], varname, lineno)):
-                    i += 1
-                else:
-                    outer.pop(i)
 
-            ordered_varnames = [vname for vname in current_scope['ordered_varnames'] if vname not in outer]
-            self.known_loop_scopes[lineno_str]['inner'] = loop['ordered_varnames'] = ordered_varnames
-            self.known_loop_scopes[lineno_str]['outer'] = outer
-
-        for vname, val in current_scope['encoded_vars'].items():
-            if vname in loop['ordered_varnames']:
-                if vname in encoded_vars:
-                    current_trace = list(encoded_vars[vname])
-                    current_trace[current] = val
-                else:
-                    current_trace = [val]
-                encoded_vars[vname] = current_trace
-
-        loop['encoded_vars'] = encoded_vars
         loop['current'] = current
         self.loop_stack[-1] = loop
 
     def should_ignore_var(self, var, varname, lineno):
-        """ Indica si una variable, actualmente marcada en el scope global, debe o no ignorarse
+        """
+        Indica si una variable, actualmente marcada en el scope global, debe o no ignorarse
         dentro del scope de esta iteración.
 
         Args:
@@ -743,7 +663,8 @@ class PGLogger(bdb.Bdb):
         return re.search(r'\b' + re.escape(varname) + r'\b', line) == None
 
     def check_variable_value_changes(self, prev, current):
-        """ Busca cambios de valores en las variables entre los distintos pasos. Si se detecta un
+        """
+        Busca cambios de valores en las variables entre los distintos pasos. Si se detecta un
         cambio de valor, el valor anterior se añade al arreglo de valores pasados. De esta forma
         se puede renderizar el valor actual y los anteriores en el front.
 
@@ -755,29 +676,22 @@ class PGLogger(bdb.Bdb):
             obj: Stack del paso actual, con las variables actualizadas de acuerdo a si se encontraron
                 o no modificaciones en su valor.
         """
-        
-        for scope_i in range(min(len(prev), len(current))):
-            prev_scope = prev[scope_i]
-            curr_scope = current[scope_i]
-            
-            for varname in curr_scope['ordered_varnames']:
-                if not varname in prev_scope['ordered_varnames']:
-                    continue
-                    
-                has_prevals = varname in prev_scope['prev_encoded_vars']
+        for varname in current['ordered_varnames']:
+            if not varname in prev['ordered_varnames']:
+                continue
+                
+            has_prevals = varname in prev['prev_encoded_vars']
+            if has_prevals:
+                current['prev_encoded_vars'][varname] = prev['prev_encoded_vars'][varname]
+
+            prev_value = prev['encoded_vars'][varname]
+            curr_value = current['encoded_vars'][varname]
+            if not curr_value == prev_value:
+                prev_record = dict(step=len(self.trace), value=prev_value)
                 if has_prevals:
-                    curr_scope['prev_encoded_vars'][varname] = prev_scope['prev_encoded_vars'][varname]
-
-                prev_value = prev_scope['encoded_vars'][varname]
-                curr_value = curr_scope['encoded_vars'][varname]
-                if not curr_value == prev_value:
-                    prev_record = dict(step=len(self.trace), value=prev_value)
-                    if has_prevals:
-                        curr_scope['prev_encoded_vars'][varname].insert(0, prev_record)
-                    else:
-                        curr_scope['prev_encoded_vars'][varname] = [prev_record]
-            current[scope_i] = curr_scope
-
+                    current['prev_encoded_vars'][varname].insert(0, prev_record)
+                else:
+                    current['prev_encoded_vars'][varname] = [prev_record]
         return current
 
     def should_hide_var(self, var):
@@ -982,16 +896,6 @@ class PGLogger(bdb.Bdb):
         lineno = tos[1]
 
         topframe_module = top_frame.f_globals['__name__']
-
-        # debug ...
-        '''
-        print >> sys.stderr
-        print >> sys.stderr, '=== STACK ===', 'curindex:', self.curindex
-        for (e,ln) in self.stack:
-          print >> sys.stderr, e.f_code.co_name + ' ' + e.f_code.co_filename + ' ' + str(ln)
-        print >> sys.stderr, "top_frame", top_frame.f_code.co_name, top_frame.f_code
-        '''
-
 
         # don't trace inside of ANY functions that aren't user-written code
         # (e.g., those from imported modules -- e.g., random, re -- or the
@@ -1392,7 +1296,7 @@ class PGLogger(bdb.Bdb):
         # relevant fields to properly disambiguate closures and recursive
         # calls to the same function
         for e in stack_to_render:
-            hash_str = e['func_name']
+            hash_str = 'call'
             # frame_id is UNIQUE, so it can disambiguate recursive calls
             hash_str += '_f' + str(e['frame_id'])
 
@@ -1425,22 +1329,18 @@ class PGLogger(bdb.Bdb):
                 except:
                     pass # don't encode the value if there's been an error
 
-        global_scope = dict(func_name='Global',
-                            encoded_vars=encoded_globals,
+        global_scope = dict(encoded_vars=encoded_globals,
                             ordered_varnames=ordered_globals,
                             prev_encoded_vars=dict())
-        stack_to_render.insert(0, global_scope)
-        stdout = self.get_user_stdout()
 
-        current_scope = stack_to_render[-1]
-        registered = self.register_loop(lineno, current_scope)
+        registered = self.register_loop(lineno)
         deleted = None
         # Registra nuevos loops (while y for)
         if registered:
-            prev_scope = self.trace[-1]['stack_to_render'][-1]
-            deleted = self.update_loop(lineno, current_scope, prev_scope)
+            deleted = self.update_loop(lineno)
             
         # Agrega información de en qué pasó se imprimió y si fue dentro de un ciclo
+        stdout = self.get_user_stdout()
         if self.prev_lineno > 0 and self.executed_script_lines[self.prev_lineno - 1].strip().startswith('print'):
             if stdout.endswith('\n'):
                 stdout = stdout[:-1]
@@ -1455,8 +1355,56 @@ class PGLogger(bdb.Bdb):
                 stdout += ' | </i><i style="color: #' + ('FFCA28' if loop_type == 'for' else '4CAF50') + '">Ciclo: ' + str(current) + ' </i><i style="color:gray">(' + loop_type + ' línea ' + str(loop['line']) + ')'
             stdout += '</i>\n'
 
+        # Para ver cambios en valores de variables
+        recursion_overflow = False
         if self.trace:
-            stack_to_render = self.check_variable_value_changes(self.trace[-1]['stack_to_render'], stack_to_render)
+            prev_stack_format = copy.deepcopy(self.trace[-1]['stack_to_render'])
+
+            # Ver cambios en el scope global
+            prev_global = prev_stack_format['global']
+            prev_stack_format['global'] = self.check_variable_value_changes(prev_global, global_scope)
+
+            # Buscar cambios en scopes locales
+            last_scope_name = prev_stack_format['ordered_scopes'][-1]
+            if stack_to_render:
+                current_scope = stack_to_render[-1]
+                current_scope_name = current_scope['func_name']
+                current_hash = current_scope['unique_hash']
+                if current_scope_name in prev_stack_format:
+                    last_scope_name = prev_stack_format['ordered_scopes'][-1]
+                    if not current_scope_name == last_scope_name:
+                        del prev_stack_format[last_scope_name]
+                        prev_stack_format['ordered_scopes'] = prev_stack_format['ordered_scopes'][:-1]
+
+                    scope = prev_stack_format[current_scope_name]
+                    last_hash = scope['ordered_hashes'][-1]
+                    if not current_hash in scope['ordered_hashes']:
+                        scope[current_hash] = current_scope
+                        scope['ordered_hashes'].append(current_hash)
+                        if len(scope) > MAX_RECURSIVE_CALLS:
+                            recursion_overflow = True
+                    elif current_hash == last_hash:
+                        if '__return__' in current_scope['ordered_varnames']:
+                            current_scope['returned'] = current_scope['encoded_vars']['__return__']
+                            del current_scope['encoded_vars']['__return__']
+                            current_scope['ordered_varnames'].pop()
+                        scope[last_hash] = self.check_variable_value_changes(scope[last_hash], current_scope)
+                    else:
+                        del scope[last_hash]
+                        scope['ordered_hashes'].pop()
+                        scope[current_hash] = self.check_variable_value_changes(scope[current_hash], current_scope)
+                else:
+                    scope = { current_hash: current_scope, 'ordered_hashes': [current_hash] }
+                    prev_stack_format['ordered_scopes'] = prev_stack_format['ordered_scopes'] + [current_scope_name]
+
+                del current_scope['unique_hash']
+                del current_scope['func_name']
+                prev_stack_format[current_scope_name] = scope
+            elif not last_scope_name == 'global':
+                del prev_stack_format[last_scope_name]
+                prev_stack_format['ordered_scopes'].pop()
+        else:
+            prev_stack_format = { 'global' : global_scope, 'ordered_scopes': ['global'] }
 
         if self.show_only_outputs:
             trace_entry = dict(line=lineno,
@@ -1469,7 +1417,7 @@ class PGLogger(bdb.Bdb):
             trace_entry = dict(line=lineno,
                                event=event_type,
                                func_name=tos[0].f_code.co_name,
-                               stack_to_render=stack_to_render,
+                               stack_to_render=prev_stack_format,
                                stdout=stdout,
                                loop_stack=list(self.loop_stack))
             if encoded_probe_vals:
@@ -1521,31 +1469,16 @@ class PGLogger(bdb.Bdb):
         if append_to_trace:
             self.trace.append(trace_entry)
 
-
-        # sanity check to make sure the state of the world at a 'call' instruction
-        # is identical to that at the instruction immediately following it ...
-        '''
-        if len(self.trace) > 1:
-          cur = self.trace[-1]
-          prev = self.trace[-2]
-          if prev['event'] == 'call':
-            assert cur['globals'] == prev['globals']
-            for (s1, s2) in zip(cur['stack_to_render'], prev['stack_to_render']):
-              assert s1 == s2
-            assert cur['heap'] == prev['heap']
-            assert cur['stdout'] == prev['stdout']
-        '''
-
-
-        if len(self.trace) >= MAX_EXECUTED_LINES:
-
+        line_limit_reached = len(self.trace) >= MAX_EXECUTED_LINES
+        if line_limit_reached or recursion_overflow:
+            message = MAX_RECURSIVE_CALLS_REACHED.format(current_scope_name, MAX_RECURSIVE_CALLS) if recursion_overflow else MAX_EXECUTED_LINES_REACHED.format(MAX_EXECUTED_LINES)
             self.trace.append(dict(event='instruction_limit_reached',
-                                   lineno=lineno,
-                                   exception_msg='Actualmente se pueden ejecutar hasta ' + str(MAX_EXECUTED_LINES) + ' pasos. Por favor, considera:<ul><li>Disminuir el largo del código</li><li><b>¿Habrá un loop infinito?</b></li></ul>'))
+                                   line=lineno,
+                                   exception_msg=message,
+                                   limit='steps'))
             self.force_terminate()
 
         self.forget()
-
 
     def _runscript(self, script_str):
         self.executed_script = script_str
@@ -1811,17 +1744,6 @@ class PGLogger(bdb.Bdb):
         sys.stderr = self.ORIGINAL_STDERR
         assert len(self.trace) <= (MAX_EXECUTED_LINES + 1)
 
-        # don't do this anymore ...
-        '''
-        # filter all entries after 'return' from '<module>', since they
-        # seem extraneous:
-        res = []
-        for e in self.trace:
-          res.append(e)
-          if e['event'] == 'return' and e['func_name'] == '<module>':
-            break
-        '''
-
         res = self.trace
 
         # if the SECOND to last entry is an 'exception'
@@ -1832,15 +1754,7 @@ class PGLogger(bdb.Bdb):
            res[-1]['event'] == 'return' and res[-1]['func_name'] == '<module>':
             res.pop()
 
-        if self.custom_modules:
-            # when there's custom_modules, call with a dict as the first parameter
-            return dict(script_lines=self.executed_script_lines,
-                        custom_modules=self.custom_modules,
-                        trace=self.trace)
-        else:
-            # common case
-            return dict(script_lines=self.executed_script_lines,
-                        trace=self.trace)
+        return self.trace
 
 import json
 
@@ -1871,7 +1785,6 @@ def exec_script_str(script_str, raw_input_lst_json, options_json):
         pass
     finally:
         logger.finalize()
-
 
 # WARNING: ONLY RUN THIS LOCALLY and never over the web, since
 # security checks are disabled

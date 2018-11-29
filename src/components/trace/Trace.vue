@@ -1,23 +1,10 @@
 <template>
     <md-card class="trace">
-        <md-tabs class="md-primary" v-if="torender">
-            <md-tab v-for="(scope, index) in torender" :key="index"
+        <md-tabs class="md-primary" v-if="stack.order.length > 0">
+            <md-tab v-for="(scope_name, index) in stack.order" :key="index"
                 :id="'tab-scope-' + index"
-                :md-label="scope.func_name">
-                <div v-if="scope.ordered_varnames.length > 0">
-                    <md-content class="variable variable-return" v-if="scope.returned">
-                        <md-content class="variable-name">Valor retornado</md-content>
-                        <var-data :variable="scope.returned"
-                            class="variable-values"></var-data>
-                    </md-content>
-                    <variable v-for="varname in scope.ordered_varnames" :key="varname"
-                        :current="scope.encoded_vars[varname]"
-                        :prevals="scope.prev_encoded_vars[varname]"
-                        :varname="varname"></variable>
-                </div>
-                <div v-else>
-                    <p class="text-center">Aún no se ha definido alguna variable</p>
-                </div>
+                :md-label="tagName(scope_name)">
+                <scope :scope="stack.scopes[scope_name]"></scope>
             </md-tab>
         </md-tabs>
         <md-card-content v-else>
@@ -28,42 +15,50 @@
 <style lang="scss" src="@/assets/styles/trace.scss"></style>
 <script>
 import Events from '@/events'
-import VarTypes from '@/vartypes'
-import VarData from '@/components/trace/VarData'
-import Variable from '@/components/trace/Variable'
+import Scope from './Scope'
 
 export default {
-    props: ['stack'],
     data: function() {
         return {
-            torender: undefined,
+            stack: {
+                order: [], 
+                scopes: [] 
+            },
         }
     },
     components: {
-        'var-data': VarData,
-        'variable': Variable,
+        'scope': Scope,
     },
-    watch: {
-        stack: {
-            handler() {
-                if(this.stack == undefined) return
-                this.torender = undefined
-                const torender = []
-                for(var i = 0; i < this.stack.length; i++) {
-                    const scope = this.stack[i]
-                    if(scope.ordered_varnames.includes(VarTypes.RETURN)) {
-                        scope.ordered_varnames.pop()
-                        const ret = scope.encoded_vars[VarTypes.RETURN]
-                        delete scope.encoded_vars[VarTypes]
-                        scope.returned = ret
-                    }
-                    torender.push(scope)
+    created: function() {
+        this.$root.$on(Events.SET_TRACE, this.decodeTrace)
+        this.$root.$on(Events.RESET, this.reset)
+    },
+    methods: {
+        decodeTrace: function(stack) {
+            if(stack == undefined) return
+            const temp_stack = { order: [], scopes: {} }
+            stack.ordered_scopes.forEach(scope_name => {
+                const scope = stack[scope_name]
+                let scope_entries = []
+                if(scope_name === 'global') 
+                    scope_entries.push(scope)
+                else {
+                    scope.ordered_hashes.forEach(hash => {
+                        scope_entries.push(scope[hash])
+                    })
                 }
-                this.torender = Object.assign([], this.torender, torender)
-            },
-            deep: true,
-            immediate: true,
+                temp_stack.scopes[scope_name] = scope_entries
+            })
+            temp_stack.order = stack.ordered_scopes
+            this.stack = Object.assign({}, this.stack, temp_stack)
+        },
+        tagName: function(name) {
+            const len = this.stack.scopes[name].length
+            return name + (name === 'global' || len <= 1 ? '' :  ' (' + len + ')')
+        },
+        reset: function() {
+            this.stack = Object.assign({}, this.stack, { order: [], scopes: {} })
         }
-    }
+    },
 }
 </script>

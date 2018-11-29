@@ -7,10 +7,10 @@
         <md-card-content id="output" class="console">
             <div class="console-item" v-html="history.cached" v-if="history.active"></div>
             <div class="console-item" v-html="history.current" v-else></div>
-            <div class="console-item console-prompt" v-if="input.request && !history.active">
+            <div class="console-item console-prompt" v-show="input.request && !history.active">
                 <md-field class="console-prompt-input">
                     <label>{{ input.request }}</label>
-                    <md-textarea :value="input.current" @input="input.current = $event" @keyup.enter="submit(true)"></md-textarea>
+                    <md-textarea :value="input.current" @input="input.current = $event" @keyup.enter="submit(true)" id="console-input"></md-textarea>
                 </md-field>
                 <div class="console-prompt-send" v-if="input.request && !history.active">
                     <md-checkbox class="md-primary" v-model="input.enter">Presionar <b>"ENTER"</b> para enviar</md-checkbox>
@@ -43,6 +43,7 @@ export default {
             input: {
                 array: [],
                 current: '',
+                element: undefined,
                 enter: true,
                 request: undefined,
             }
@@ -52,6 +53,11 @@ export default {
         this.$root.$on(Events.UPDATE_CONSOLE, this.update)
         this.$root.$on(Events.PROMPT_INPUT, (raw_input) => {
             this.input.request = raw_input.prompt
+            
+            if(this.input.array.length === 0) return
+            // Centra la entrada en el input, si ya se han ingresado datos antes
+            // para evitar hacer clic en cada entrada.
+            this.$nextTick(() => this.input.element.focus())
         })
         this.$root.$on(Events.CLEAR_INPUT, this.reset)
         this.$root.$on(Events.RESET, () => {
@@ -61,6 +67,7 @@ export default {
         })
     },
     mounted: function() {
+        this.input.element = document.getElementById('console-input')
     },
     methods: {
         /**

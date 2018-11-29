@@ -2,13 +2,13 @@
     <div class="container md-layout md-gutter">
         <div class="md-layout-item md-size-50 md-small-size-100">
             <md-card class="md-primary md-elevation-6 editor" md-theme="secondary">
+                <div class="editor-code-running" v-if="running.active" @click="running.dialog = true"></div>
                 <editor-toolbar :exceptions="exceptions" :stepping="stepping"></editor-toolbar>
                 <editor></editor>
-                <md-button class="md-fab md-mini editor-limit-reached"
+                <md-button class="md-raised editor-limit-reached"
                     @click="exceptions.limit.dialog = true"
                     v-if="exceptions.limit.reached">
-                    <md-icon>error</md-icon>
-                    <md-tooltip md-direction="left">Límite de ejecución alcanzado</md-tooltip>
+                    <md-icon>error</md-icon>&ensp;Límite alcanzado
                 </md-button>
                 <md-dialog :md-active.sync="exceptions.limit.dialog">
                     <md-dialog-title class="md-dialog-danger">
@@ -23,13 +23,17 @@
         </div>
         <div class="md-layout-item md-size-50 md-small-size-100 visual-panel">
             <console class="md-elevation-6"></console>
-            <trace v-if="!running" class="md-elevation-6" :stack="stack"></trace>
+            <trace class="md-elevation-6"></trace>
         </div>
-        <md-snackbar md-position="left" :md-duration="Infinity" :md-active.sync="running" md-theme="default-light">
-            <md-progress-spinner class="md-accent" :md-diameter="30" md-mode="indeterminate"></md-progress-spinner>
+        <md-snackbar md-position="left" :md-duration="Infinity" :md-active.sync="running.active" md-theme="default-light">
+            <md-progress-spinner class="md-accent" :md-diameter="30" :md-value="timeout.perc" :md-mode="timeout.time > 0 ? 'determinate' : 'indeterminate'"></md-progress-spinner>
             <span>Ejecutando código...</span>
         </md-snackbar>
-    </div>
+        <md-dialog-alert
+            :md-active.sync="running.dialog"
+            md-title="Tu código aún se está ejecutando..."
+            :md-content="'Por favor, espera hasta que termine para realizar alguna acción en el editor. ' + (timeout.time > 0 ? 'La ejecución se detendrá automáticamente dentro de <u>' + timeout.time / 1000 + ' segundos</u>.' : '<u>Esperando respuesta del servidor...</u>')" />
+        </div>
 </template>
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
 <script>
@@ -62,11 +66,19 @@ export default {
                 searching: true,
                 warnings: [],
             },
-            running: false,
-            stack: undefined,
+            running: {
+                active: false,
+                dialog: false,
+            },
             stepping: {
                 current: undefined,
                 last: undefined,
+            },
+            timeout: {
+                interval: undefined,
+                perc: undefined,
+                step: 100,
+                time: undefined,
             },
             /**
              * Traza de ejecución devuelta desde el servidor.
@@ -99,21 +111,37 @@ export default {
         send: function(addPayload = {}) {
             const script = localStorage.getItem('script')
             if(script === undefined || script.length === 0) return
+            
+            this.exceptions.limit.reached = false
 
-            this.running = true
             this.$http
-                .post(process.env.ROOT_API + '/trace', { ...addPayload, script })
+                .post('/trace', { ...addPayload, script })
                 .then(response => {
                     this.response(response.data)
                 })
                 .catch(e => {
-                    this.running = false
+                    this.running.active = false
                     this.$root.$emit(Events.SHOW_SNACK, { 
                         className: 'card-danger', 
                         duration: 5000,
                         message: Const.ERR_CONNECTION,
                     })
                 })
+
+            this.running.active = true
+            this.startTimeout()
+        },
+        startTimeout: function() {
+            this.timeout.time = Const.MAX_TIME_RUNNING  
+            this.timeout.perc = 100
+            clearInterval(this.timeout.interval)
+            this.timeout.interval = setInterval(() => {
+                this.timeout.time -= this.timeout.step
+                this.timeout.perc = this.timeout.time * 100 / Const.MAX_TIME_RUNNING
+
+                if(this.timeout.perc > 0) return
+                clearInterval(this.timeout.interval)
+            }, this.timeout.step)
         },
         /**
          * Se ejecuta al recibir respuesta del servidor luego de haber enviado código
@@ -121,13 +149,12 @@ export default {
          * @param data Respuesta del servidor.
          */
         response: function(data) {
-            this.trace = data.trace
+            this.trace = data
             
             // Elimina las excepciones de la ejecución anterior
             this.exceptions.errors = []
             this.exceptions.warnings = []
             this.exceptions.searching = true // Indica que deben anotarse las excepciones
-            this.exceptions.limit.reached = false
 
             const last = this.trace.length - 1
             this.stepping.current = this.stepping.last = last
@@ -154,10 +181,6 @@ export default {
          * @param index Número de paso de ejecución
          */
         renderStep: function(step, index) {
-            if(this.requested) {
-                console.log('Aborted!')
-                return
-            }
             if(step.event === Const.EVENT_LIMIT_REACHED) { // Límite de pasos
                 this.renderLimitReached(step, index - 1)
                 return
@@ -210,10 +233,22 @@ export default {
          */
         renderLimitReached: function(step, last_index) {
             this.exceptions.limit.message = step.exception_msg
-            const last_step = this.trace[last_index]
-            this.renderLastStep(last_step, step, last_index)
-            this.finishRender(last_step)
             this.exceptions.limit.reached = true
+            this.finishRender(last_index < 0 ? step : this.trace[last_index])
+
+            // Si el límite se alcanzo por número de pasos ejecutado
+            if(step.limit === Const.LIMIT_REACHED_BY_STEPS)
+                this.renderLastStep(step, undefined, last_index)
+                return
+
+            // Si el límite se alcanzó por tiempo de ejecución
+            this.$root.$emit(Events.HIGHLIGHT, {
+                row: 0,
+                column: 0,
+                text: Const.LIMIT_REACHED_BY_TIME,
+                type: AnnotationTypes.ERROR
+            })
+            
         },
         /**
          * Renderiza los elementos propios de una excepción controlada.
@@ -280,8 +315,9 @@ export default {
          * @param step Paso actual
          */
         finishRender: function(step) {
-            this.running = false
-            this.stack = step.stack_to_render
+            this.running.active = false
+            this.running.dialog = false
+            this.$root.$emit(Events.SET_TRACE, step.stack_to_render)
 
             if(this.stepping.current < this.stepping.last)
                 this.$root.$emit(Events.SCROLL_EDITOR, step.line)

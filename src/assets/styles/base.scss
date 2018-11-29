@@ -69,10 +69,40 @@ $large: 16px;
     }
  }
 
+ .code {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: white !important;
+    color: $darkGrey !important;
+
+    $fontHeight: 14px;
+    &-line {
+        display: flex;
+        flex-direction: row;
+        white-space: pre;
+        font-size: $fontHeight;
+        height: $fontHeight + $small;
+        padding-top: $small / 2;
+        padding-bottom: $small / 2;
+    }
+    &-identifier {
+        color: md-get-palette-color(blue, 500);
+    }
+    &-indent {
+        width: 32px;
+        height: 100%;
+    }
+    &-num {
+        color: md-get-palette-color(green, 500);
+    }
+    &-reserved {
+        color: md-get-palette-color(orange, 500);
+    }
+ }
+
  .component-fade-enter-active, .component-fade-leave-active {
-     transition: opacity .3s ease;
+    transition: opacity .3s ease;
  }
  .component-fade-enter, .component-fade-leave-to
    /* .component-fade-leave-active below version 2.1.8 */ {
-     opacity: 0;
+    opacity: 0;
  }

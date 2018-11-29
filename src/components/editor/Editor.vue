@@ -11,6 +11,7 @@
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
 <style lang="scss" src="@/assets/styles/ace.scss"></style>
 <script>
+import Const from '@/const'
 import Events from '@/events'
 
 export default {
@@ -36,6 +37,7 @@ export default {
                 time: 0,
             },
             requested: false,
+            waitTime: this.isMobile() ? Const.TIME_MOBILE : Const.TIME_DESKTOP,
         }
     },
     created: function() {

@@ -11,6 +11,7 @@ import Events from '@/events'
 export default {
     data: function() {
         return {
+            minSteps: 6,
             stepping: {
                 current: undefined,
                 last: undefined,

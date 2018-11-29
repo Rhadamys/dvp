@@ -80,7 +80,7 @@
                     <span class="md-list-item-text">String o caracter</span>
                 </md-list-item>
                 <md-list-item>
-                    <md-content class="symbol symbol-bold variable-values-current-list">[]</md-content>
+                    <md-content class="symbol symbol-bold variable-values-current-list">[ ]</md-content>
                     <span class="md-list-item-text">Lista</span>
                 </md-list-item>
                 <md-list-item>
@@ -94,6 +94,10 @@
                         <md-icon>apps</md-icon>
                     </md-content>
                     <span class="md-list-item-text">Matriz</span>
+                </md-list-item>
+                <md-list-item>
+                    <md-content class="symbol symbol-bold variable-values-current-dict">{ }</md-content>
+                    <span class="md-list-item-text">Diccionario</span>
                 </md-list-item>
                 <md-list-item>
                     <md-content class="symbol symbol-bold variable-values-current-function">fx()</md-content>
