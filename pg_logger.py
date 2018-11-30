@@ -51,9 +51,9 @@ else:
 import pg_encoder
 
 
+DEBUG = True # Para imprimir las excepciones en la consola
 # upper-bound on the number of executed lines, in order to guard against
 # infinite loops
-#MAX_EXECUTED_LINES = 300
 MAX_EXECUTED_LINES = 1000 # on 2016-05-01, I increased the limit from 300 to 1000 for Python due to popular user demand! and I also improved the warning message
 MAX_RECURSIVE_CALLS = 100
 
@@ -71,9 +71,6 @@ MAX_RECURSIVE_CALLS_REACHED = '''La función <u>{0}</u> se ha llamado {1} veces 
 OPEN_NOT_SUPPORTED = '''Aún no se puede utilizar open().
                         Puedes utilizar {0} para simular 
                         un archivo.'''
-
-#DEBUG = False
-DEBUG = True
 
 BREAKPOINT_STR = '#break'
 
