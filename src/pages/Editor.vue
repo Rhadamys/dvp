@@ -110,8 +110,6 @@ export default {
          */
         send: function(addPayload = {}) {
             const script = localStorage.getItem('script')
-            if(script === undefined || script.length === 0) return
-            
             this.exceptions.limit.reached = false
 
             this.$http

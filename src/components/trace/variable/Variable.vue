@@ -3,6 +3,7 @@
         <md-content class="variable">
             <div class="variable-name">
                 {{ varname }}
+                <md-tooltip md-direction="top">{{ varname }}</md-tooltip>
             </div>
             <div class="variable-values">
                 <div class="variable-values-box">
@@ -52,13 +53,13 @@
                 <div class="md-stepping" v-if="prevals">
                     <md-button class="md-icon-button md-dense"
                         @click="index += 1"
-                        v-bind:disabled="index === prevals.length">
+                        :disabled="index === prevals.length">
                         <md-icon>navigate_before</md-icon>
                         <md-tooltip md-direction="top">Anterior</md-tooltip>
                     </md-button>
                     <md-button class="md-icon-button md-dense"
                         @click="index -= 1"
-                        v-bind:disabled="index === 0">
+                        :disabled="index === 0">
                         <md-icon>navigate_next</md-icon>
                         <md-tooltip md-direction="top">Siguiente</md-tooltip>
                     </md-button>
@@ -78,7 +79,6 @@
 import Events from '@/events'
 import VarTypes from '@/vartypes'
 import Methods from '@/components/trace/methods'
-import VarData from './VarData'
 
 export default {
     props: ['current', 'prevals', 'varname'],
@@ -98,9 +98,6 @@ export default {
             vartypes: VarTypes,
         }
     },
-    components: {
-        'var-data': VarData,
-    },
     methods: {
         ...Methods,
         show: function(index) {
@@ -112,13 +109,14 @@ export default {
             this.$root.$emit(Events.SET_STEP, step)
         },
         setVar: function() {
-            if(this.prevals) {
-                const selected = this.index > 0 ? this.prevals[this.index - 1] : this.current
-                const value = selected.value || selected
-                this.variable.step = selected.step
-                this.variable.value = value
-            } else
+            console.log('SET VAR')
+            if(this.prevals === undefined || this.index === 0) {
                 this.variable.value = this.current
+            } else {
+                const selected =  this.prevals[this.index - 1]
+                this.variable.step = selected.step
+                this.variable.value = selected.value || selected
+            }
         },
     },
     computed: {
@@ -139,8 +137,11 @@ export default {
         }
     },
     watch: {
-        index: function() {
-            this.setVar()
+        index: {
+            handler() {
+                this.setVar()
+            },
+            inmediate: true,
         },
     }
 }

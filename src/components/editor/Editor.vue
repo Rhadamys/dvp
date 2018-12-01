@@ -21,10 +21,7 @@ export default {
                 editor: {},
                 markers: [],
             },
-            offline: {
-                requested: false,
-                script: undefined,
-            },
+            firstRun: true,
             /**
              * Timer para enviar código automáticamente al servidor luego de cumplirse
              * un breve periodo de tiempo sin realizar modificaciones en el editor, es
@@ -46,10 +43,8 @@ export default {
         this.$root.$on(Events.SCROLL_EDITOR, (line) => {
             this.ace.editor.scrollToLine(line, true, true)
         })
-        this.$on(Events.GO_OFFLINE, () => this.offline.script = this.ace.editor.session.getValue())
         this.$on(Events.GO_ONLINE, () => {
-            const last_script = localStorage.getItem('script')
-            if(this.offline.requested && this.offline.script !== last_script) this.send() 
+            if(this.requested) this.send() 
         })
     },
     mounted: function() {
@@ -64,17 +59,17 @@ export default {
          * Callback para "onChange" de Ace Editor.
          */
         change: function(delta) {
-            localStorage.setItem('script', this.ace.editor.session.getValue())
+            this.reset() // Elimina marcas del editor
+            const last = localStorage.getItem('script')
+            const current = this.ace.editor.session.getValue()
+            if((current === last && !this.firstRun) || current === undefined || current.length === 0) return
 
-            if(this.isOffline && !this.offline.requested) {
+            if(this.isOffline) {
                 // Para enviar el código cuando se restablezca la conexión
-                this.offline.requested = true
-                // Eliminar marcas del editor
-                this.reset()
+                this.requested = true
                 return
             }
-            
-            clearInterval(this.remaining.interval)            
+                     
             this.remaining.perc = 100
             this.remaining.time = this.waitTime
             this.remaining.interval = setInterval(this.tick, this.remaining.step)
@@ -97,12 +92,16 @@ export default {
          * Restablece las marcas del editor.
          */
         reset: function() {
+            this.remaining.perc = 0
+            this.remaining.time = undefined
+            clearInterval(this.remaining.interval)
+
             this.ace.editor.getSession().setAnnotations([])
             this.ace.markers.map(marker => {
                 this.ace.editor.session.removeMarker(marker)
             })
             this.ace.markers = []
-            this.offline.requested = false
+            this.requested = false
         },
         /**
          * Emite eventos para restablecer todos los componentes de la aplicación relacionados
@@ -110,9 +109,10 @@ export default {
          * en el servidor.
          */
         send: function() {
+            localStorage.setItem('script', this.ace.editor.session.getValue())
+            this.firstRun = false
             this.$root.$emit(Events.RESET)
             this.$root.$emit(Events.SEND_SCRIPT)
-            this.reset()
         },
         /**
          * Este procedimiento se ejecuta en cada tick del intervalo de cuenta regresiva

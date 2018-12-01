@@ -15,6 +15,7 @@ export default {
         } else if(type === VarTypes.STRING) {
             return value.replace(/\b\n\b/g, '<br>')
         } else if(type === VarTypes.NUMBER || type === VarTypes.FLOAT) {
+            value = value[1] || value
             const parts = value.toString().split('.')
             const number = parts[0]
             const base = number.length % 3 || 3
@@ -47,8 +48,8 @@ export default {
 
         return type
     },
-    value: function(variable) {
-        const type = this.type(variable)
+    value: function(variable, vartype = undefined) {
+        const type = vartype || this.type(variable)
         switch(type) {
             case VarTypes.BOOLEAN: return variable ? 'True': 'False'
             case VarTypes.DICT: return '{ }'

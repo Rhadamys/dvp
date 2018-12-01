@@ -70,7 +70,7 @@
             </div>
             <div class="variable-unique-content">
                 <div class="variable-unique-value variable-values-current-number" v-if="other">{{ decode(variable, thisType) }}</div>
-                <div class="variable-unique-value variable-values-current-number" v-else>{{ variable }}</div>
+                <div class="variable-unique-value variable-values-current-number" v-else>{{ value(variable, thisType) }}</div>
             </div>
         </div>
         <div v-else-if="detailed && thisType === vartypes.STRING" class="variable-unique md-elevation-4">
@@ -99,7 +99,7 @@
             </div>
         </div>
         <div v-else>
-            <span>{{ variable }}</span>
+            <span>{{ value(variable, thisType) }}</span>
         </div>
     </div>
 </template>
@@ -128,7 +128,16 @@ export default {
         'matrix': Matrix,
         'funct': Func,
     },
-    methods: Methods
+    methods: Methods,
+    watch: {
+        variable: {
+            handler() {
+                this.thisType = this.type(this.variable)
+            },
+            deep: true,
+            inmediate: true,
+        }
+    },
 }
 </script>
 
