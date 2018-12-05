@@ -50,11 +50,11 @@ else:
     import StringIO
 import pg_encoder
 
-BINARY_LOGICALS = ['and', 'or', '&', '|']
+BINARY_LOGICALS = ['and', 'or', '&', '|', 'in', 'not in', 'not_in']
 UNARY_LOGICALS = ['not', '~']
 LOGICALS = BINARY_LOGICALS + UNARY_LOGICALS
 
-LOGICAL_OPERATORS = ['<', '<=', '>=', '>', '==', '!=']
+LOGICAL_OPERATORS = ['<', '<=', '>=', '>', '==', '!=', '=']
 MATH_OPERATORS = [ '+', '-' '*', '/', '**', '//', '%']
 OPERATORS = LOGICAL_OPERATORS + MATH_OPERATORS
 
@@ -555,14 +555,11 @@ class PGLogger(bdb.Bdb):
 
         self.registered_loops = dict(stack=[]) # Loops registrados
 
-    def register_loop(self, line, lineno):
+    def register_loop(self, line):
         """
         Registra un nuevo loop. De esta forma se le puede hacer seguimiento
         a su ejecución para ver, por ejemplo, qué operaciones se realizan dentro
         y fuera de un ciclo.
-
-        Args:
-            lineno (int): Número de la línea que se está ejecutando actualmente.
 
         Returns:
             bool: True, si ya se registró este loop y necesita actualizarse.
@@ -576,35 +573,32 @@ class PGLogger(bdb.Bdb):
             iterable = list(iterable_val)
             loop = dict(iterable=iterable)
         else:
-            conditional = self.trace_conditional(line, lineno)
+            conditional = self.trace_conditional(line)
             line_parts = conditional['expression'].split(' ')
             line_parts = list(filter(None, line_parts))
             line_parts.insert(0, 'while')
             loop = dict(conditional=conditional)
             
         loop_type = line_parts[0]
-        loop.update(dict(line=lineno,
+        loop.update(dict(line=self.lineno,
                          type=loop_type,
                          line_parts=line_parts,
                          current=0))
-        self.registered_loops[lineno] = loop
-        self.registered_loops['stack'].append(lineno)
+        self.registered_loops[self.lineno] = loop
+        self.registered_loops['stack'].append(self.lineno)
         return copy.deepcopy(loop)
 
-    def update_loop(self, lineno):
+    def update_loop(self):
         """ 
         Actualiza la información del loop actual, tales como el ciclo en que
         va. Si es un for, también actualiza el elemento iterable.
         TODO: En el front, animaciones para for?
 
-        Args:
-            lineno (int): Número de la línea que se está ejecutando actualmente.
-
         Returns:
             any: Devuelve el objeto del loop si éste ya terminó, porque no se agrega
                 al stack de salida en la traza.
         """
-        loop = self.registered_loops[lineno]
+        loop = self.registered_loops[self.lineno]
         loop_type = loop['type']
         loop['current'] += 1
 
@@ -614,19 +608,19 @@ class PGLogger(bdb.Bdb):
             loop['iterable'] = list(iterable)
             last = len(loop['iterable']) - 1
             if loop['current'] > last:
-                del self.registered_loops[lineno]
+                del self.registered_loops[self.lineno]
                 self.registered_loops['stack'].pop()
         else:
             expression = loop['conditional']['expression']
-            conditional = self.trace_conditional(expression, lineno)
+            conditional = self.trace_conditional(expression)
             if not conditional['result']:
-                del self.registered_loops[lineno]
+                del self.registered_loops[self.lineno]
                 self.registered_loops['stack'].pop()
             loop['conditional'] = conditional
         return copy.deepcopy(loop)
 
-    def trace_conditional(self, line, lineno):
-        start = lineno
+    def trace_conditional(self, line):
+        start = end = self.lineno
         if line.startswith('if'):
             line = line[2:]
         elif line.startswith('elif'):
@@ -639,12 +633,12 @@ class PGLogger(bdb.Bdb):
             line = line.strip('\\')
             end_found = False
             while(not end_found):
-                current = self.executed_script_lines[lineno].strip().strip('\\')
+                current = self.executed_script_lines[end].strip().strip('\\')
                 if current.endswith(':'):
                     current = current.strip(':')
                     end_found = True
                 line += current
-                lineno += 1
+                end += 1
 
         if line.startswith('(') and line.endswith(')'):
             line = line[1 : -1]
@@ -730,40 +724,55 @@ class PGLogger(bdb.Bdb):
                                     value = value[indexes[0]:indexes[1]]
                                 else:
                                     value = value[indexes[0]::indexes[1]]
-                            else:
+                            elif '$' in index:
                                 dictionary = copy.deepcopy(value)
                                 dictionary.pop(0)
                                 index = index[1 : -1]
                                 for item in dictionary:
                                     if item[0] == index:
                                         value = item[1]
+                            else:
+                                index = eval(index, self.user_globals, self.user_locals)
+                                value = value[index]
                 subexp.update(dict(type='variable', value=value))
         
         def decompose_expression(expression):
             NOT_A_FUNCTION = LOGICALS + OPERATORS
             ADD_SPACE = NOT_A_FUNCTION + ['(', ')', '[', ']']
             for exp in ADD_SPACE:
-                expression = expression.replace(exp, ' ' + exp + ' ')
+                if exp.isalpha():
+                    expression = re.sub(r'\b' + re.escape(exp) + r'\b', ' ' + exp + ' ', expression)
+                else:
+                    expression = expression.replace(exp, ' ' + exp + ' ')
 
             # Rearmar operandos
-            expression = expression.replace('< =', '<=').replace('> =', '>=').replace('* *', '*').replace('/ /', '/')
+            REBUILD = [r'<[\s]*=', r'>[\s]*=', r'=[\s]*=', r'![\s]*=',  r'/[\s]*/', r'\*[\s]*\*', r'not[\s]{1,}in']
+            RE_REPLACE = ['<=', '>=', '==', '!=', '//', '**', 'not_in']
+            for i in range(len(REBUILD)):
+                expression = re.sub(REBUILD[i], RE_REPLACE[i], expression)
             expression = expression.split(' ')
             expression = list(filter(None, expression))
             parsed = ' '.join(expression)
+            print('---\n', parsed, file=self.GAE_STDOUT, end="\n\n")
 
             # Juntar llamados de funciones
             temp = []
             while expression:
                 part = expression.pop(0)
-                if expression and not(part in NOT_A_FUNCTION or part[0].isdigit()) and (expression[0] == '(' or expression[0] == '['):
-                    bracket = expression[0] == '('
-                    part += expression.pop(0)
-                    while((bracket and not expression[0] == ')') or # Es ( y aún no encuentra )
-                        (not bracket and (not expression[0] == ']' or # es [ y aún no encuentra ]
-                        (len(expression) > 1 and expression[1] == '[')))): # o hay un nuevo [
-                        print('---\n', expression[0], file=self.GAE_STDOUT, end="\n\n")
-                        part += expression.pop(0) + ' '
-                    part = part.strip() + expression.pop(0)
+                if expression:
+                    if not(part in NOT_A_FUNCTION or part[0].isdigit()) and (expression[0] == '(' or expression[0] == '['):
+                        bracket = expression[0] == '('
+                        part += expression.pop(0)
+                        if bracket:
+                            while((bracket and not expression[0] == ')')): # Es ( y aún no encuentra )
+                                part += expression.pop(0) + ' '
+                        else:
+                            while(not bracket and (not expression[0] == ']' or # es [ y aún no encuentra ]
+                                (len(expression) > 1 and expression[1] == '['))): # o hay un nuevo [
+                                part += expression.pop(0)
+                        part = part.strip() + expression.pop(0)
+                    elif part == 'not' and expression[0] == 'in':
+                        part += expression.pop(0)
                 temp.append(part)
             
             expression = temp
@@ -784,6 +793,9 @@ class PGLogger(bdb.Bdb):
                             encoded.append(encoded_part)
                         return parsed, encoded
                     elif part in LOGICALS or part in LOGICAL_OPERATORS:
+                        if part == 'not_in':
+                            part = 'not in'
+
                         if parsed_part:
                             parsed.append(parsed_part)
                             encoded.append(encoded_part)
@@ -813,16 +825,16 @@ class PGLogger(bdb.Bdb):
                 index_operator = index + 1
                 index_second = index + 2
 
-                first = eval_expression(exp[index_first], enc[index_first], trace, '''{0}{1}>'''.format(tree, index_first))
-                if index_operator >= len(exp) - 1 or not exp[index_operator] in LOGICAL_OPERATORS:
+                first = eval_expression(exp[index_first], enc[index_first], trace, '{0}{1}>'.format(tree, index_first))
+                if index_operator >= len(exp) - 1 or exp[index_operator] not in LOGICAL_OPERATORS:
                     enc_copy = copy.deepcopy(encoded)
                     exp[index_first] = first
                     enc[index_first] = encode_part(first)
                     return first, enc_copy, False
 
                 operator = exp[index_operator]
-                second = eval_expression(exp[index_second], enc[index_second], trace, '''{0}{1}>'''.format(tree, index_second))
-                to_eval = '''{0} {1} {2}'''.format(first, operator, second)
+                second = eval_expression(exp[index_second], enc[index_second], trace, '{0}{1}>'.format(tree, index_second))
+                to_eval = '{0} {1} {2}'.format(first, operator, second)
                 result = eval(to_eval, self.user_globals, self.user_locals)
                 enc_copy = copy.deepcopy(encoded)
                 del exp[index + 1 : index + 3]
@@ -840,13 +852,10 @@ class PGLogger(bdb.Bdb):
             if isinstance(exp, list):
                 index = 0
                 while index < len(exp):
+                    print('---\n', encoded, file=self.GAE_STDOUT, end="\n\n")
                     curr_exp = exp[index]
                     curr_enc = enc[index]
                     curr_tree = tree + str(index)
-
-                    if index + 1 < len(exp) - 1 and exp[index + 1] in LOGICAL_OPERATORS:
-                        result, enc_copy, has_sub = eval_subexpression(exp, enc, index)
-                        update_trace(enc_copy, result, tree + str(index + 1))
 
                     if isinstance(curr_exp, list):
                         result = eval_expression(curr_exp, curr_enc, trace, curr_tree + '>')
@@ -854,9 +863,10 @@ class PGLogger(bdb.Bdb):
                         enc[index] = encode_part(result)
                     elif curr_exp in UNARY_LOGICALS:
                         next_exp, enc_copy, has_sub = eval_subexpression(exp, enc, index + 1)
-                        update_trace(enc_copy, next_exp, tree + str(index + (2 if has_sub else 1)))
+                        if has_sub:
+                            update_trace(enc_copy, next_exp, tree + str(index + 2))
 
-                        to_eval = '''{0} {1}'''.format(curr_exp, curr_enc, next_exp)
+                        to_eval = '{0} {1}'.format(curr_exp, curr_enc, next_exp)
                         result = eval(to_eval, self.user_globals, self.user_locals)
                         update_trace(copy.deepcopy(encoded), result, curr_tree)
                         exp.pop(index)
@@ -876,7 +886,8 @@ class PGLogger(bdb.Bdb):
                             update_trace(copy.deepcopy(encoded), result, curr_tree)
                         else:
                             next_exp, enc_copy, has_sub = eval_subexpression(exp, enc, index + 1)
-                            update_trace(enc_copy, next_exp, tree + str(index + (2 if has_sub else 1)))
+                            if has_sub:
+                                update_trace(enc_copy, next_exp, tree + str(index + 2))
                             exp[index + 1] = next_exp
                             enc[index + 1] = encode_part(next_exp)
                             to_eval = '''{0} {1} {2}'''.format(prev_result, curr_exp, next_exp)
@@ -887,6 +898,10 @@ class PGLogger(bdb.Bdb):
                         index = index - 1
                         exp[index] = result
                         enc[index] = encode_part(result)
+                    else:
+                        result, enc_copy, has_sub = eval_subexpression(exp, enc, index)
+                        if has_sub:
+                            update_trace(enc_copy, result, tree + str(index + 1))
                     index = index + 1
                 ret = exp[0]
                 if type(ret) == str:
@@ -902,7 +917,7 @@ class PGLogger(bdb.Bdb):
         trace = []
         res = eval_expression(expression, encoded, trace, '')
         ret = dict(exp_start=start, 
-                   exp_ends=lineno, 
+                   exp_ends=end, 
                    expression=parsed,
                    result=res, 
                    trace=trace)
@@ -1139,7 +1154,7 @@ class PGLogger(bdb.Bdb):
         self.setup(frame, traceback)
         tos = self.stack[self.curindex]
         top_frame = tos[0]
-        lineno = tos[1]
+        self.lineno = tos[1]
 
         topframe_module = top_frame.f_globals['__name__']
 
@@ -1648,13 +1663,13 @@ class PGLogger(bdb.Bdb):
             prev_stack_format = { 'global' : global_scope, 'ordered_scopes': ['global'] }
 
         if self.show_only_outputs:
-            trace_entry = dict(line=lineno,
+            trace_entry = dict(line=self.lineno,
                                event=event_type,
                                func_name=tos[0].f_code.co_name,
                                stack_to_render=[],
                                stdout=stdout)
         else:
-            trace_entry = dict(line=lineno,
+            trace_entry = dict(line=self.lineno,
                                event=event_type,
                                func_name=tos[0].f_code.co_name,
                                stack_to_render=prev_stack_format,
@@ -1662,7 +1677,7 @@ class PGLogger(bdb.Bdb):
             if encoded_probe_vals:
                 trace_entry['probe_exprs'] = encoded_probe_vals
                 
-        line = self.executed_script_lines[lineno - 1].strip()
+        line = self.executed_script_lines[self.lineno - 1].strip()
         ins_type = 'loop' if line.startswith(('for', 'while')) else \
                    'conditional' if line.startswith(('if', 'elif')) else ''
 
@@ -1672,13 +1687,13 @@ class PGLogger(bdb.Bdb):
         cond = None
         if ins_type == 'loop':
             # Registra y actualiza loops (while y for)
-            if lineno in self.registered_loops:
-                loop = self.update_loop(lineno)
+            if self.lineno in self.registered_loops:
+                loop = self.update_loop()
             else:
-                loop = self.register_loop(line, lineno)
+                loop = self.register_loop(line)
             trace_entry.update(dict(loop=loop))
         elif ins_type == 'conditional':
-            cond = self.trace_conditional(line, lineno)
+            cond = self.trace_conditional(line)
             trace_entry.update(dict(conditional=cond))
 
         # optional column numbers for greater precision
@@ -1714,7 +1729,7 @@ class PGLogger(bdb.Bdb):
         # the state before and after that line gets executed.
         append_to_trace = True
         if self.breakpoints:
-            if not ((lineno in self.breakpoints) or (self.prev_lineno in self.breakpoints)):
+            if not ((self.lineno in self.breakpoints) or (self.prev_lineno in self.breakpoints)):
                 append_to_trace = False
 
             # TRICKY -- however, if there's an exception, then ALWAYS
@@ -1722,7 +1737,7 @@ class PGLogger(bdb.Bdb):
             if event_type == 'exception':
                 append_to_trace = True
 
-        self.prev_lineno = lineno
+        self.prev_lineno = self.lineno
 
         if append_to_trace:
             self.trace.append(trace_entry)
@@ -1731,7 +1746,7 @@ class PGLogger(bdb.Bdb):
         if line_limit_reached or recursion_overflow:
             message = MAX_RECURSIVE_CALLS_REACHED.format(current_scope_name, MAX_RECURSIVE_CALLS) if recursion_overflow else MAX_EXECUTED_LINES_REACHED.format(MAX_EXECUTED_LINES)
             self.trace.append(dict(event='instruction_limit_reached',
-                                   line=lineno,
+                                   line=self.lineno,
                                    exception_msg=message,
                                    limit='steps'))
             self.force_terminate()
@@ -1967,8 +1982,7 @@ class PGLogger(bdb.Bdb):
             trace_entry = dict(event='uncaught_exception')
 
             (exc_type, exc_val, exc_tb) = sys.exc_info()
-            if hasattr(exc_val, 'lineno'):
-                trace_entry['line'] = exc_val.lineno
+            trace_entry['line'] = self.lineno
             if hasattr(exc_val, 'offset'):
                 trace_entry['offset'] = exc_val.offset
 

@@ -49,8 +49,9 @@
 
     &-limit-reached {
         position: absolute !important;
-        bottom: 0;
+        top: $headerHeight + $xsmall;
         right: 0;
+        z-index: 8 !important;
         background: md-get-palette-color(red, 700) !important;
 
         .md-icon {
