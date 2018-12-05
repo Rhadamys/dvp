@@ -35,7 +35,7 @@ $lighterGrey: md-get-palette-color(grey, 500);
     height: 100%;
 }
 
-$headerHeight: 36px;
+$headerHeight: 40px;
 $borderRadius: 4px;
 
 $xsmall: 6px;
@@ -52,24 +52,24 @@ $large: 16px;
     @media (max-width: 959px) {
         @content;
     }
- }
- @mixin medium {
+}
+@mixin medium {
     @media (max-width: 1259px) {
         @content;
     }
- }
- @mixin large {
+}
+@mixin large {
     @media (max-width: 1919px) {
         @content;
     }
- }
- @mixin xlarge {
+}
+@mixin xlarge {
     @media (min-width: 1920) {
         @content;
     }
- }
+}
 
- .code {
+.code {
     font-family: 'Courier New', Courier, monospace;
     background-color: white !important;
     color: $darkGrey !important;
@@ -97,12 +97,33 @@ $large: 16px;
     &-reserved {
         color: md-get-palette-color(orange, 500);
     }
- }
+    }
 
- .component-fade-enter-active, .component-fade-leave-active {
+.component-fade-enter-active, .component-fade-leave-active {
     transition: opacity .3s ease;
- }
- .component-fade-enter, .component-fade-leave-to
-   /* .component-fade-leave-active below version 2.1.8 */ {
+}
+.component-fade-enter, .component-fade-leave-to
+    /* .component-fade-leave-active below version 2.1.8 */ {
     opacity: 0;
- }
+}
+
+@mixin keyframes($name) {
+    @-webkit-keyframes #{$name} {
+        @content; 
+    }
+    @-moz-keyframes #{$name} {
+        @content;
+    }
+    @-o-keyframes #{$name} {
+        @content;
+    }
+    @keyframes #{$name} {
+        @content;
+    } 
+}
+@mixin animate($name, $duration, $iteration) {
+    -webkit-animation: $name $duration $iteration;
+       -moz-animation: $name $duration $iteration;
+         -o-animation: $name $duration $iteration;
+            animation: $name $duration $iteration;
+}

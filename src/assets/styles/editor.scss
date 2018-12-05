@@ -1,6 +1,14 @@
 @import "./base.scss";
 
 .editor {
+    display: flex;
+    flex-direction: column;
+    
+    .md-card-actions {
+        height: $headerHeight !important;
+        min-height: $headerHeight !important;
+    }
+
     &-actions {
         .play-btn {
             color: md-get-palette-color(lightgreen, 400) !important;
@@ -51,11 +59,7 @@
     }
 
     &-ace {
-        height: 100%;
-
-        .md-progress-bar {
-            position: absolute;
-        }
+        flex: 1;
     }
 }
 

@@ -109,7 +109,6 @@ export default {
             this.$root.$emit(Events.SET_STEP, step)
         },
         setVar: function() {
-            console.log('SET VAR')
             if(this.prevals === undefined || this.index === 0) {
                 this.variable.value = this.current
             } else {

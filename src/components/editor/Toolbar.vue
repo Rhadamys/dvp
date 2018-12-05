@@ -1,12 +1,12 @@
 <template>
     <md-card-actions md-alignment="space-between">
         <div class="editor-exc">
-            <md-button class="editor-exc-errors" @click="showExceptionsDialog = true"
+            <md-button class="editor-exc-errors md-dense" @click="showExceptionsDialog = true"
                 v-bind:disabled="exceptions.errors.length === 0">
                 <md-icon>error</md-icon>&ensp;{{ exceptions.errors.length }}
                 <md-tooltip md-direction="top">Errores</md-tooltip>
             </md-button>
-            <md-button class="editor-exc-warnings" @click="showExceptionsDialog = true"
+            <md-button class="editor-exc-warnings md-dense" @click="showExceptionsDialog = true"
                 v-bind:disabled="exceptions.warnings.length === 0">
                 <md-icon>warning</md-icon>&ensp;{{ exceptions.warnings.length }}
                 <md-tooltip md-direction="top">Advertencias</md-tooltip>

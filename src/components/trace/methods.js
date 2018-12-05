@@ -1,8 +1,8 @@
 import VarTypes from '@/vartypes'
 
 export default {
-    color: function(depth = 0) {
-        const base = 80 + depth * 25
+    color: function(depth = 0, light=false) {
+        const base = light ? 255 - depth * 30 : 80 + depth * 25
         return 'rgb(' + base + ', ' + base + ', ' + (base + 10) + ')'
     },
     decode: function(value, vartype = undefined) {

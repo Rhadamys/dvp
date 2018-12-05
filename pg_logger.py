@@ -50,6 +50,13 @@ else:
     import StringIO
 import pg_encoder
 
+BINARY_LOGICALS = ['and', 'or', '&', '|']
+UNARY_LOGICALS = ['not', '~']
+LOGICALS = BINARY_LOGICALS + UNARY_LOGICALS
+
+LOGICAL_OPERATORS = ['<', '<=', '>=', '>', '==', '!=']
+MATH_OPERATORS = [ '+', '-' '*', '/', '**', '//', '%']
+OPERATORS = LOGICAL_OPERATORS + MATH_OPERATORS
 
 DEBUG = True # Para imprimir las excepciones en la consola
 # upper-bound on the number of executed lines, in order to guard against
@@ -59,18 +66,18 @@ MAX_RECURSIVE_CALLS = 100
 
 # Mensajes
 MAX_EXECUTED_LINES_REACHED = '''Actualmente se pueden ejecutar hasta {0} pasos.
-                                   Por favor, considera:<ul><li>Disminuir el largo del código</li>
-                                   <li><b>¿Habrá un loop infinito?</b></li></ul>'''
+Por favor, considera:<ul><li>Disminuir el largo del código</li>
+<li><b>¿Habrá un loop infinito?</b></li></ul>'''
 MAX_RECURSIVE_CALLS_REACHED = '''La función <u>{0}</u> se ha llamado {1} veces sin 
-                                retornar algún valor. Por favor, comprueba que no hayan <u>llamados 
-                                recursivos</u> que impidan retornar un valor. Aquí algunos ejemplos:
-                                <div class="md-layout md-gutter" style="margin-top: 12px; margin-bottom: 12px;"> <div class="md-layout-item"> <div class="md-card" style="margin-bottom: 12px;"> <div class="md-card-content code"> <div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionRecursiva</div><div>(res):</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-reserved">if </div><div>res == </div><div class="code-num">1</div><div>:</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-indent"></div><div class="code-reserved">return </div><div class="code-num">1</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-reserved">else</div><div>:</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-indent"></div><div class="code-reserved">return </div><div>funcionRecursiva(res - </div><div class="code-num">1</div><div>)</div></div><div class="code-line"></div><div class="code-line"> <div>funcionRecursiva(</div><div class="code-num">{1}</div><div>)</div></div></div></div></div><div class="md-layout-item"> <div class="md-card"> <div class="md-card-content code"> <div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionA</div><div>():</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div>funcionB()</div></div><div class="code-line"></div><div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionB</div><div>():</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div>funcionA()</div></div><div class="code-line"></div><div class="code-line"> </div><div>funcionA()</div></div></div></div></div></div>
-                                Si has generado estos llamados recursivos a propósito, por favor 
-                                considera <u>disminuir el tamaño de la entrada</u> para no superar 
-                                este límite.'''
+retornar algún valor. Por favor, comprueba que no hayan <u>llamados 
+recursivos</u> que impidan retornar un valor. Aquí algunos ejemplos:
+<div class="md-layout md-gutter" style="margin-top: 12px; margin-bottom: 12px;"> <div class="md-layout-item"> <div class="md-card" style="margin-bottom: 12px;"> <div class="md-card-content code"> <div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionRecursiva</div><div>(res):</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-reserved">if </div><div>res == </div><div class="code-num">1</div><div>:</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-indent"></div><div class="code-reserved">return </div><div class="code-num">1</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-reserved">else</div><div>:</div></div><div class="code-line"> <div class="code-indent"></div><div class="code-indent"></div><div class="code-reserved">return </div><div>funcionRecursiva(res - </div><div class="code-num">1</div><div>)</div></div><div class="code-line"></div><div class="code-line"> <div>funcionRecursiva(</div><div class="code-num">{1}</div><div>)</div></div></div></div></div><div class="md-layout-item"> <div class="md-card"> <div class="md-card-content code"> <div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionA</div><div>():</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div>funcionB()</div></div><div class="code-line"></div><div class="code-line"> <div class="code-reserved">def </div><div class="code-identifier">funcionB</div><div>():</div></div><div class="code-line"><div class="code-indent"></div><div>...</div></div><div class="code-line"> <div class="code-indent"></div><div>funcionA()</div></div><div class="code-line"></div><div class="code-line"> </div><div>funcionA()</div></div></div></div></div></div>
+Si has generado estos llamados recursivos a propósito, por favor 
+considera <u>disminuir el tamaño de la entrada</u> para no superar 
+este límite.'''
 OPEN_NOT_SUPPORTED = '''Aún no se puede utilizar open().
-                        Puedes utilizar {0} para simular 
-                        un archivo.'''
+Puedes utilizar {0} para simular 
+un archivo.'''
 
 BREAKPOINT_STR = '#break'
 
@@ -546,10 +553,9 @@ class PGLogger(bdb.Bdb):
 
         self.prev_lineno = -1 # keep track of previous line just executed
 
-        self.registered_loops = [] # Loops registrados
-        self.loop_stack = [] # Para guardar loops
+        self.registered_loops = dict(stack=[]) # Loops registrados
 
-    def register_loop(self, lineno):
+    def register_loop(self, line, lineno):
         """
         Registra un nuevo loop. De esta forma se le puede hacer seguimiento
         a su ejecución para ver, por ejemplo, qué operaciones se realizan dentro
@@ -561,10 +567,6 @@ class PGLogger(bdb.Bdb):
         Returns:
             bool: True, si ya se registró este loop y necesita actualizarse.
         """
-        if lineno in self.registered_loops:
-            return True
-
-        line = self.executed_script_lines[lineno - 1].strip()
         if line.startswith('for'):
             line_parts = line.strip(':').split(' ')
             line_parts = list(filter(None, line_parts))
@@ -573,39 +575,21 @@ class PGLogger(bdb.Bdb):
             iterable_val = eval(iterable_str, self.user_globals, self.user_locals)
             iterable = list(iterable_val)
             loop = dict(iterable=iterable)
-        elif line.startswith('while'):
-            if not line.endswith(':'):
-                current = lineno + 1
-                found = False
-                while not found:
-                    next_line = self.executed_script_lines[current]
-                    next_line = next_line.strip()
-                    line += ' ' + next_line
-                    found = next_line.endswith(':')
-
-            temp = line.strip(' ')
-            if temp.startswith('while('):
-                first = line.find('(')
-                last = line.rfind(')')
-                line = list(line)
-                line[first] = ' '
-                line.pop(last)
-                line = ''.join(line)
-            
-            line_parts = line.strip(':').split(' ')
-            line_parts = list(filter(None, line_parts))
-            loop = dict(condition=' '.join(line_parts[1:]))
         else:
-            return False
+            conditional = self.trace_conditional(line, lineno)
+            line_parts = conditional['expression'].split(' ')
+            line_parts = list(filter(None, line_parts))
+            line_parts.insert(0, 'while')
+            loop = dict(conditional=conditional)
             
         loop_type = line_parts[0]
         loop.update(dict(line=lineno,
-                         loop_type=loop_type,
+                         type=loop_type,
                          line_parts=line_parts,
                          current=0))
-        self.registered_loops.append(lineno)
-        self.loop_stack.append(loop)
-        return False
+        self.registered_loops[lineno] = loop
+        self.registered_loops['stack'].append(lineno)
+        return copy.deepcopy(loop)
 
     def update_loop(self, lineno):
         """ 
@@ -620,44 +604,309 @@ class PGLogger(bdb.Bdb):
             any: Devuelve el objeto del loop si éste ya terminó, porque no se agrega
                 al stack de salida en la traza.
         """
-        loop = dict(self.loop_stack[-1])
-        current = loop['current']
-        loop_type = loop['loop_type']
-
-        if loop['line'] == lineno:
-            current += 1
+        loop = self.registered_loops[lineno]
+        loop_type = loop['type']
+        loop['current'] += 1
 
         if loop_type == 'for':
+            iterable = loop['line_parts'][-1]
+            iterable = eval(iterable, self.user_globals, self.user_locals)
+            loop['iterable'] = list(iterable)
             last = len(loop['iterable']) - 1
-            if current > last:
-                self.registered_loops.pop()
-                self.loop_stack.pop()
-                loop['current'] = current
-                return loop
-        elif not eval(loop['condition'], self.user_globals, self.user_locals):
-            self.registered_loops.pop()
-            self.loop_stack.pop()
-            return loop
+            if loop['current'] > last:
+                del self.registered_loops[lineno]
+                self.registered_loops['stack'].pop()
+        else:
+            expression = loop['conditional']['expression']
+            conditional = self.trace_conditional(expression, lineno)
+            if not conditional['result']:
+                del self.registered_loops[lineno]
+                self.registered_loops['stack'].pop()
+            loop['conditional'] = conditional
+        return copy.deepcopy(loop)
 
-        loop['current'] = current
-        self.loop_stack[-1] = loop
+    def trace_conditional(self, line, lineno):
+        start = lineno
+        if line.startswith('if'):
+            line = line[2:]
+        elif line.startswith('elif'):
+            line = line[4:]
+        elif line.startswith('while'):
+            line = line[5:]
 
-    def should_ignore_var(self, var, varname, lineno):
-        """
-        Indica si una variable, actualmente marcada en el scope global, debe o no ignorarse
-        dentro del scope de esta iteración.
+        line = line.strip(':').strip()
+        if line.endswith('\\') or (line.startswith('(') and not line.endswith(')')):
+            line = line.strip('\\')
+            end_found = False
+            while(not end_found):
+                current = self.executed_script_lines[lineno].strip().strip('\\')
+                if current.endswith(':'):
+                    current = current.strip(':')
+                    end_found = True
+                line += current
+                lineno += 1
 
-        Args:
-            var (any): Variable que se está evaluando.
-            varname (str): Nombre de la variable que se está evaluando.
-            lineno (int): Número de la línea de código actual.
+        if line.startswith('(') and line.endswith(')'):
+            line = line[1 : -1]
+        
+        global_scope = self.current_stack['global']
+        list_vars = global_scope['ordered_varnames']
+        scope_name = self.current_stack['ordered_scopes'][-1]
+        in_local_scope = not scope_name == 'global'
+        if in_local_scope:
+            local_scope = self.current_stack[scope_name]
+            last_hash = local_scope['ordered_hashes'][-1]
+            local_scope = local_scope[last_hash]
+            local_vars = local_scope['ordered_varnames']
+            for varname in local_vars:
+                if not varname in list_vars:
+                    list_vars.append(varname)
 
-        Returns:
-            bool: True, si debe ignorarse la variable, False en otro caso.
-        """
+        # Para render: determina el tipo de una parte de la expresión para
+        # poder colorearla en el front.
+        def encode_part(part):
+            v_type = type(part)
+            ret = dict()
+            if v_type == bool:
+                v_type = part
+                part = str(part)
+            elif v_type == int or v_type == float:
+                v_type = 'number'
+            elif part == '?':
+                v_type = 'or-skipped'
+            elif '(' in part:
+                v_type = 'function'
+                result = eval(part, self.user_globals, self.user_locals)
+                n_part = part.replace('(', ',').strip(')').strip(' ').split(',')
+                part = n_part.pop(0)
+                params = []
+                for p in n_part:
+                    params.append(encode_part(p))
+                ret.update(dict(params=params, result=result))
+            elif part.startswith(("'", '"')):
+                v_type = 'string'
+            elif part in OPERATORS:
+                v_type = 'operator'
+            elif part in LOGICALS:
+                v_type = 'logical'
+            else:
+                v_type = 'unknown'
+            ret.update(dict(part=part, type=v_type))
+            return ret
 
-        line = self.executed_script_lines[lineno - 1]
-        return re.search(r'\b' + re.escape(varname) + r'\b', line) == None
+        def search_var_value(subexp):
+            regx = re.compile('\\b(' + '|'.join(list_vars) + ')\\b')
+            part = subexp['part']
+            without_str = re.sub(r'(["\'])(\\?.)*?\1', '', part)
+            for found in regx.finditer(without_str):
+                varname = found.group()
+                value = local_scope['encoded_vars'][varname] if in_local_scope and varname in local_scope['encoded_vars'] else global_scope['encoded_vars'][varname]
+
+                if '[' in part:
+                    print(part, file=self.GAE_STDOUT, end="\n\n")
+                    part = part.replace(']', '').split('[')
+                    variable = eval(part[0], self.user_globals, self.user_locals)
+                    part = part[1:]
+                    for index in part:
+                        try:
+                            index = int(index) + 1
+                            value = value[index]
+                        except ValueError:
+                            if ':' in index:
+                                print(index, file=self.GAE_STDOUT, end="\n\n")
+                                colon = index.count(':')
+                                indexes = index.split(':' * colon)
+
+                                print(indexes, file=self.GAE_STDOUT, end="\n\n")
+                                if len(indexes[0]) == 0:
+                                    indexes[0] = 'None'
+                                indexes[0] = eval(indexes[0], self.user_globals, self.user_locals)
+
+                                if len(indexes[1]) == 0:
+                                    indexes[1] = 'None'
+                                indexes[1] = eval(indexes[1], self.user_globals, self.user_locals)
+                                print(indexes, file=self.GAE_STDOUT, end="\n\n")
+                                if colon == 1:
+                                    value = value[indexes[0]:indexes[1]]
+                                else:
+                                    value = value[indexes[0]::indexes[1]]
+                            else:
+                                dictionary = copy.deepcopy(value)
+                                dictionary.pop(0)
+                                index = index[1 : -1]
+                                for item in dictionary:
+                                    if item[0] == index:
+                                        value = item[1]
+                subexp.update(dict(type='variable', value=value))
+        
+        def decompose_expression(expression):
+            NOT_A_FUNCTION = LOGICALS + OPERATORS
+            ADD_SPACE = NOT_A_FUNCTION + ['(', ')', '[', ']']
+            for exp in ADD_SPACE:
+                expression = expression.replace(exp, ' ' + exp + ' ')
+
+            # Rearmar operandos
+            expression = expression.replace('< =', '<=').replace('> =', '>=').replace('* *', '*').replace('/ /', '/')
+            expression = expression.split(' ')
+            expression = list(filter(None, expression))
+            parsed = ' '.join(expression)
+
+            # Juntar llamados de funciones
+            temp = []
+            while expression:
+                part = expression.pop(0)
+                if expression and not(part in NOT_A_FUNCTION or part[0].isdigit()) and (expression[0] == '(' or expression[0] == '['):
+                    bracket = expression[0] == '('
+                    part += expression.pop(0)
+                    while((bracket and not expression[0] == ')') or # Es ( y aún no encuentra )
+                        (not bracket and (not expression[0] == ']' or # es [ y aún no encuentra ]
+                        (len(expression) > 1 and expression[1] == '[')))): # o hay un nuevo [
+                        print('---\n', expression[0], file=self.GAE_STDOUT, end="\n\n")
+                        part += expression.pop(0) + ' '
+                    part = part.strip() + expression.pop(0)
+                temp.append(part)
+            
+            expression = temp
+            def search_parenthesis_expr(expression):
+                parsed = []
+                parsed_part = ''
+                encoded = []
+                encoded_part = dict()
+                while expression:
+                    part = expression.pop(0)
+                    if part == '(':
+                        part, enc = search_parenthesis_expr(expression)
+                        parsed.append(part)
+                        encoded.append(enc)
+                    elif part == ')':
+                        if parsed_part:
+                            parsed.append(parsed_part)
+                            encoded.append(encoded_part)
+                        return parsed, encoded
+                    elif part in LOGICALS or part in LOGICAL_OPERATORS:
+                        if parsed_part:
+                            parsed.append(parsed_part)
+                            encoded.append(encoded_part)
+                        parsed_part = ''
+                        parsed.append(part)
+
+                        encoded_part = dict()
+                        enc_part = encode_part(part)
+                        encoded.append(enc_part)
+                    else:
+                        parsed_part += ' ' + part if parsed_part else part
+
+                        enc_part = encode_part(part)
+                        encoded_part.update({ len(encoded_part): enc_part })
+                if parsed_part:
+                    parsed.append(parsed_part)
+                    encoded.append(encoded_part)
+                return parsed, encoded
+
+            expression, encoded = search_parenthesis_expr(expression)
+            return expression, encoded, parsed
+
+        expression, encoded, parsed = decompose_expression(line)
+        def eval_expression(exp, enc, trace, tree):
+            def eval_subexpression(exp, enc, index):
+                index_first = index
+                index_operator = index + 1
+                index_second = index + 2
+
+                first = eval_expression(exp[index_first], enc[index_first], trace, '''{0}{1}>'''.format(tree, index_first))
+                if index_operator >= len(exp) - 1 or not exp[index_operator] in LOGICAL_OPERATORS:
+                    enc_copy = copy.deepcopy(encoded)
+                    exp[index_first] = first
+                    enc[index_first] = encode_part(first)
+                    return first, enc_copy, False
+
+                operator = exp[index_operator]
+                second = eval_expression(exp[index_second], enc[index_second], trace, '''{0}{1}>'''.format(tree, index_second))
+                to_eval = '''{0} {1} {2}'''.format(first, operator, second)
+                result = eval(to_eval, self.user_globals, self.user_locals)
+                enc_copy = copy.deepcopy(encoded)
+                del exp[index + 1 : index + 3]
+                del enc[index + 1 : index + 3]
+                exp[index_first] = result
+                enc[index_first] = encode_part(result)
+                return result, enc_copy, True
+
+            def update_trace(enc, result, tree):
+                entry = dict(expression=enc, 
+                             result=result,
+                             tree=tree)
+                trace.append(entry)
+
+            if isinstance(exp, list):
+                index = 0
+                while index < len(exp):
+                    curr_exp = exp[index]
+                    curr_enc = enc[index]
+                    curr_tree = tree + str(index)
+
+                    if index + 1 < len(exp) - 1 and exp[index + 1] in LOGICAL_OPERATORS:
+                        result, enc_copy, has_sub = eval_subexpression(exp, enc, index)
+                        update_trace(enc_copy, result, tree + str(index + 1))
+
+                    if isinstance(curr_exp, list):
+                        result = eval_expression(curr_exp, curr_enc, trace, curr_tree + '>')
+                        exp[index] = result
+                        enc[index] = encode_part(result)
+                    elif curr_exp in UNARY_LOGICALS:
+                        next_exp, enc_copy, has_sub = eval_subexpression(exp, enc, index + 1)
+                        update_trace(enc_copy, next_exp, tree + str(index + (2 if has_sub else 1)))
+
+                        to_eval = '''{0} {1}'''.format(curr_exp, curr_enc, next_exp)
+                        result = eval(to_eval, self.user_globals, self.user_locals)
+                        update_trace(copy.deepcopy(encoded), result, curr_tree)
+                        exp.pop(index)
+                        enc.pop(index)
+                        exp[index] = result
+                        enc[index] = encode_part(result)
+                    elif curr_exp in BINARY_LOGICALS:
+                        prev_result = exp[index - 1]
+                        if curr_exp == 'or' and prev_result:
+                            exp_len = index + 2 < len(exp) - 1
+                            if exp_len and exp[index + 2] in LOGICAL_OPERATORS:
+                                del exp[index + 2 : index + 4]
+                                del enc[index + 2 : index + 4]
+                            exp[index + 1] = '?'
+                            enc[index + 1] = encode_part('?')
+                            result = True
+                            update_trace(copy.deepcopy(encoded), result, curr_tree)
+                        else:
+                            next_exp, enc_copy, has_sub = eval_subexpression(exp, enc, index + 1)
+                            update_trace(enc_copy, next_exp, tree + str(index + (2 if has_sub else 1)))
+                            exp[index + 1] = next_exp
+                            enc[index + 1] = encode_part(next_exp)
+                            to_eval = '''{0} {1} {2}'''.format(prev_result, curr_exp, next_exp)
+                            result = eval(to_eval, self.user_globals, self.user_locals)
+                            update_trace(copy.deepcopy(encoded), result, curr_tree)
+                        del exp[index : index + 2]
+                        del enc[index : index + 2]
+                        index = index - 1
+                        exp[index] = result
+                        enc[index] = encode_part(result)
+                    index = index + 1
+                ret = exp[0]
+                if type(ret) == str:
+                    ret = """'{0}'""".format(ret)
+                return exp[0]
+            else:
+                search_var_value(enc[0])
+                result = eval(exp, self.user_globals, self.user_locals)
+                if type(result) == str:
+                    result = """'{0}'""".format(result)
+                return result       
+        
+        trace = []
+        res = eval_expression(expression, encoded, trace, '')
+        ret = dict(exp_start=start, 
+                   exp_ends=lineno, 
+                   expression=parsed,
+                   result=res, 
+                   trace=trace)
+        return ret
 
     def check_variable_value_changes(self, prev, current):
         """
@@ -1034,7 +1283,7 @@ class PGLogger(bdb.Bdb):
             encoded_vars = {}
 
             user_locals = get_user_locals(cur_frame)
-            self.user_locals.update(user_locals)
+            self.user_locals.update(copy.deepcopy(user_locals))
             for (k, v) in user_locals.items():
                 is_in_parent_frame = False
 
@@ -1232,7 +1481,7 @@ class PGLogger(bdb.Bdb):
         # effects of aliasing later down the line ...
         encoded_globals = {}
         cur_globals_dict = get_user_globals(tos[0], at_global_scope=(self.curindex <= 1))
-        self.user_globals = cur_globals_dict
+        self.user_globals = copy.deepcopy(cur_globals_dict)
         for (k, v) in cur_globals_dict.items():
             if self.should_hide_var(k):
                 continue
@@ -1326,15 +1575,6 @@ class PGLogger(bdb.Bdb):
                 except:
                     pass # don't encode the value if there's been an error
 
-        global_scope = dict(encoded_vars=encoded_globals,
-                            ordered_varnames=ordered_globals,
-                            prev_encoded_vars=dict())
-
-        registered = self.register_loop(lineno)
-        deleted = None
-        # Registra nuevos loops (while y for)
-        if registered:
-            deleted = self.update_loop(lineno)
             
         # Agrega información de en qué pasó se imprimió y si fue dentro de un ciclo
         stdout = self.get_user_stdout()
@@ -1345,12 +1585,16 @@ class PGLogger(bdb.Bdb):
             trace_len = len(self.trace) + 1
             stdout += '&emsp;<i style="color: gray"> ... Paso: ' + str(trace_len)
 
-            loop = deleted if deleted else self.loop_stack[-1] if self.loop_stack else None
-            if loop:
-                current = loop['current'] if lineno == loop['line'] else loop['current'] + 1
-                loop_type = loop['loop_type']
-                stdout += ' | </i><i style="color: #' + ('FFCA28' if loop_type == 'for' else '4CAF50') + '">Ciclo: ' + str(current) + ' </i><i style="color:gray">(' + loop_type + ' línea ' + str(loop['line']) + ')'
+            if self.registered_loops['stack']:
+                current = self.registered_loops['stack'][-1]
+                curr_loop = self.registered_loops[current]
+                loop_type = curr_loop['type']
+                stdout += ''' | </i><i style="color: #{0}">Ciclo: {1} </i><i style="color:gray">({2} línea {3})'''.format('FFCA28' if loop_type == 'for' else '4CAF50', curr_loop['current'] + 1, loop_type, curr_loop['line'])
             stdout += '</i>\n'
+
+        global_scope = dict(encoded_vars=encoded_globals,
+                            ordered_varnames=ordered_globals,
+                            prev_encoded_vars=dict())
 
         # Para ver cambios en valores de variables
         recursion_overflow = False
@@ -1408,17 +1652,34 @@ class PGLogger(bdb.Bdb):
                                event=event_type,
                                func_name=tos[0].f_code.co_name,
                                stack_to_render=[],
-                               stdout=stdout,
-                               loop_stack=list(self.loop_stack))
+                               stdout=stdout)
         else:
             trace_entry = dict(line=lineno,
                                event=event_type,
                                func_name=tos[0].f_code.co_name,
                                stack_to_render=prev_stack_format,
-                               stdout=stdout,
-                               loop_stack=list(self.loop_stack))
+                               stdout=stdout)
             if encoded_probe_vals:
                 trace_entry['probe_exprs'] = encoded_probe_vals
+                
+        line = self.executed_script_lines[lineno - 1].strip()
+        ins_type = 'loop' if line.startswith(('for', 'while')) else \
+                   'conditional' if line.startswith(('if', 'elif')) else ''
+
+        self.current_stack = prev_stack_format
+
+        loop = None
+        cond = None
+        if ins_type == 'loop':
+            # Registra y actualiza loops (while y for)
+            if lineno in self.registered_loops:
+                loop = self.update_loop(lineno)
+            else:
+                loop = self.register_loop(line, lineno)
+            trace_entry.update(dict(loop=loop))
+        elif ins_type == 'conditional':
+            cond = self.trace_conditional(line, lineno)
+            trace_entry.update(dict(conditional=cond))
 
         # optional column numbers for greater precision
         # (only relevant in Py2crazy, a hacked CPython that supports column numbers)

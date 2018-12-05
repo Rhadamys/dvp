@@ -5,6 +5,7 @@
                 <div class="editor-code-running" v-if="running.active" @click="running.dialog = true"></div>
                 <editor-toolbar :exceptions="exceptions" :stepping="stepping"></editor-toolbar>
                 <editor></editor>
+                <conditional id="editor-conditional"></conditional>
                 <md-button class="md-raised editor-limit-reached"
                     @click="exceptions.limit.dialog = true"
                     v-if="exceptions.limit.reached">
@@ -38,8 +39,10 @@
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
 <script>
 import AnnotationTypes from '@/annotations'
+import VarTypes from '@/vartypes'
 import Const from '@/const'
 import Events from '@/events'
+import Conditional from '../components/conditional/Conditional'
 import Editor from '../components/editor/Editor'
 import IOConsole from '../components/Console'
 import Toolbar from '../components/editor/Toolbar'
@@ -87,6 +90,7 @@ export default {
         }
     },
     components: {
+        'conditional': Conditional,
         'console': IOConsole,
         'editor': Editor,
         'editor-toolbar': Toolbar,
@@ -316,8 +320,11 @@ export default {
             this.running.active = false
             this.running.dialog = false
             this.$root.$emit(Events.SET_TRACE, step.stack_to_render)
+            
+            const cond = step.conditional || (step.loop ? step.loop.conditional : undefined)
+            this.$root.$emit(Events.SET_CONDITIONAL, cond)
 
-            if(this.stepping.current < this.stepping.last)
+            if(!(step.event === VarTypes.RETURN && this.stepping.current === this.stepping.last))
                 this.$root.$emit(Events.SCROLL_EDITOR, step.line)
 
             if(step.stdout === undefined) return

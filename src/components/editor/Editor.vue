@@ -5,7 +5,7 @@
             :md-value="remaining.perc"
             v-if="remaining.perc > 0"
             :style="{ opacity: 1.25 - remaining.perc / 100 }"></md-progress-bar>
-        <div id="ace-editor" class="editor-ace"></div>
+        <div id="ace-editor" style="height: 100%"></div>
     </div>
 </template>
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
@@ -40,9 +40,7 @@ export default {
     created: function() {
         this.$root.$on(Events.CLEAR_HIGHLIGHT, this.reset)
         this.$root.$on(Events.HIGHLIGHT, this.highlight)
-        this.$root.$on(Events.SCROLL_EDITOR, (line) => {
-            this.ace.editor.scrollToLine(line, true, true)
-        })
+        this.$root.$on(Events.SCROLL_EDITOR, line => this.ace.editor.scrollToLine(line, true, true))
         this.$on(Events.GO_ONLINE, () => {
             if(this.requested) this.send() 
         })
