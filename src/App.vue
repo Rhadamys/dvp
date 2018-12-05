@@ -203,7 +203,7 @@ export default {
                 later: false,
                 show: false,
                 timer: undefined,
-                url: 'https://goo.gl/forms/5FVUR6pIyQaPUii43',
+                url: 'https://goo.gl/forms/GHc25unyX2eEtuoj2',
             },
             showMenu: false,
             snack: {
