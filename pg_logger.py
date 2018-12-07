@@ -50,13 +50,15 @@ else:
     import StringIO
 import pg_encoder
 
-BINARY_LOGICALS = ['and', 'or', '&', '|', 'in', 'not in', 'not_in']
+BINARY_LOGICALS = ['and', 'or', '&', '|', '^', 'in', 'not in', 'not_in']
 UNARY_LOGICALS = ['not', '~']
 LOGICALS = BINARY_LOGICALS + UNARY_LOGICALS
 
-LOGICAL_OPERATORS = ['<', '<=', '>=', '>', '==', '!=', '=']
-MATH_OPERATORS = [ '+', '-' '*', '/', '**', '//', '%']
+LOGICAL_OPERATORS = ['<', '<=', '>=', '>', '==', '!=', '<>', '=']
+MATH_OPERATORS = [ '+', '-', '*', '/', '**', '//', '%']
 OPERATORS = LOGICAL_OPERATORS + MATH_OPERATORS
+
+BRACKETS = ['(', ')', '[', ']']
 
 DEBUG = True # Para imprimir las excepciones en la consola
 # upper-bound on the number of executed lines, in order to guard against
@@ -571,7 +573,7 @@ class PGLogger(bdb.Bdb):
             iterable_str = ' '.join(line_parts[iterable_idx:])
             iterable_val = eval(iterable_str, self.user_globals, self.user_locals)
             iterable = list(iterable_val)
-            loop = dict(iterable=iterable)
+            loop = dict(iterable=iterable, iterable_str=iterable_str)
         else:
             conditional = self.trace_conditional(line)
             line_parts = conditional['expression'].split(' ')
@@ -603,7 +605,7 @@ class PGLogger(bdb.Bdb):
         loop['current'] += 1
 
         if loop_type == 'for':
-            iterable = loop['line_parts'][-1]
+            iterable = loop['iterable_str']
             iterable = eval(iterable, self.user_globals, self.user_locals)
             loop['iterable'] = list(iterable)
             last = len(loop['iterable']) - 1
@@ -637,24 +639,19 @@ class PGLogger(bdb.Bdb):
                 if current.endswith(':'):
                     current = current.strip(':')
                     end_found = True
-                line += current
+                line += ' ' + current
                 end += 1
 
         if line.startswith('(') and line.endswith(')'):
             line = line[1 : -1]
         
-        global_scope = self.current_stack['global']
-        list_vars = global_scope['ordered_varnames']
-        scope_name = self.current_stack['ordered_scopes'][-1]
-        in_local_scope = not scope_name == 'global'
-        if in_local_scope:
-            local_scope = self.current_stack[scope_name]
-            last_hash = local_scope['ordered_hashes'][-1]
-            local_scope = local_scope[last_hash]
-            local_vars = local_scope['ordered_varnames']
-            for varname in local_vars:
-                if not varname in list_vars:
-                    list_vars.append(varname)
+        vars_list = self.current_stack['global']['ordered_varnames']
+        current_scope = self.current_stack['ordered_scopes'][-1]
+        if not current_scope == 'global':
+            current = self.current_stack[current_scope]
+            current_hash = current['ordered_hashes'][-1]
+            vars_list += current[current_hash]['ordered_varnames']
+        vars_list = r'\b(' + '|'.join(vars_list) + r')\b'
 
         # Para render: determina el tipo de una parte de la expresión para
         # poder colorearla en el front.
@@ -664,86 +661,47 @@ class PGLogger(bdb.Bdb):
             if v_type == bool:
                 v_type = part
                 part = str(part)
-            elif v_type == int or v_type == float:
-                v_type = 'number'
-            elif part == '?':
-                v_type = 'or-skipped'
-            elif '(' in part:
-                v_type = 'function'
-                result = eval(part, self.user_globals, self.user_locals)
-                n_part = part.replace('(', ',').strip(')').strip(' ').split(',')
-                part = n_part.pop(0)
-                params = []
-                for p in n_part:
-                    params.append(encode_part(p))
-                ret.update(dict(params=params, result=result))
-            elif part.startswith(("'", '"')):
-                v_type = 'string'
-            elif part in OPERATORS:
-                v_type = 'operator'
-            elif part in LOGICALS:
-                v_type = 'logical'
+            elif v_type == str:
+                if part == '?':
+                    v_type = 'skipped'
+                    ret['message'] = 'No se evaluó debido a que la primera expresión ya es verdadera'
+                elif '(' in part and not part.startswith('('):
+                    v_type = 'function'
+                    n_part = part.replace('(', ',').strip(')').strip(' ').split(',')
+                    part = n_part.pop(0)
+                    params = []
+                    for p in n_part:
+                        params.append(encode_part(p))
+                    ret['params'] = params
+                elif part.startswith(("'", '"')):
+                    v_type = 'string'
+                elif part in OPERATORS:
+                    v_type = 'operator'
+                elif part in LOGICALS:
+                    v_type = 'logical'
+                else:
+                    try:
+                        value = eval(part)
+                        v_type = 'variable'
+                        ret['value'] = value
+                        part = ''
+                    except:
+                        v_type = 'unknown'
             else:
-                v_type = 'unknown'
+                value = self.encoder.encode(part, False)
+                v_type = 'variable'
+                ret['value'] = value
+                part = ''
             ret.update(dict(part=part, type=v_type))
             return ret
 
-        def search_var_value(subexp):
-            regx = re.compile('\\b(' + '|'.join(list_vars) + ')\\b')
-            part = subexp['part']
-            without_str = re.sub(r'(["\'])(\\?.)*?\1', '', part)
-            for found in regx.finditer(without_str):
-                varname = found.group()
-                value = local_scope['encoded_vars'][varname] if in_local_scope and varname in local_scope['encoded_vars'] else global_scope['encoded_vars'][varname]
-
-                if '[' in part:
-                    print(part, file=self.GAE_STDOUT, end="\n\n")
-                    part = part.replace(']', '').split('[')
-                    variable = eval(part[0], self.user_globals, self.user_locals)
-                    part = part[1:]
-                    for index in part:
-                        try:
-                            index = int(index) + 1
-                            value = value[index]
-                        except ValueError:
-                            if ':' in index:
-                                print(index, file=self.GAE_STDOUT, end="\n\n")
-                                colon = index.count(':')
-                                indexes = index.split(':' * colon)
-
-                                print(indexes, file=self.GAE_STDOUT, end="\n\n")
-                                if len(indexes[0]) == 0:
-                                    indexes[0] = 'None'
-                                indexes[0] = eval(indexes[0], self.user_globals, self.user_locals)
-
-                                if len(indexes[1]) == 0:
-                                    indexes[1] = 'None'
-                                indexes[1] = eval(indexes[1], self.user_globals, self.user_locals)
-                                print(indexes, file=self.GAE_STDOUT, end="\n\n")
-                                if colon == 1:
-                                    value = value[indexes[0]:indexes[1]]
-                                else:
-                                    value = value[indexes[0]::indexes[1]]
-                            elif '$' in index:
-                                dictionary = copy.deepcopy(value)
-                                dictionary.pop(0)
-                                index = index[1 : -1]
-                                for item in dictionary:
-                                    if item[0] == index:
-                                        value = item[1]
-                            else:
-                                index = eval(index, self.user_globals, self.user_locals)
-                                value = value[index]
-                subexp.update(dict(type='variable', value=value))
-        
         def decompose_expression(expression):
             NOT_A_FUNCTION = LOGICALS + OPERATORS
-            ADD_SPACE = NOT_A_FUNCTION + ['(', ')', '[', ']']
+            ADD_SPACE = NOT_A_FUNCTION + ['(', ')']
             for exp in ADD_SPACE:
                 if exp.isalpha():
-                    expression = re.sub(r'\b' + re.escape(exp) + r'\b', ' ' + exp + ' ', expression)
-                else:
-                    expression = expression.replace(exp, ' ' + exp + ' ')
+                    continue
+                expression = expression.replace(exp, ' ' + exp + ' ')
 
             # Rearmar operandos
             REBUILD = [r'<[\s]*=', r'>[\s]*=', r'=[\s]*=', r'![\s]*=',  r'/[\s]*/', r'\*[\s]*\*', r'not[\s]{1,}in']
@@ -752,8 +710,6 @@ class PGLogger(bdb.Bdb):
                 expression = re.sub(REBUILD[i], RE_REPLACE[i], expression)
             expression = expression.split(' ')
             expression = list(filter(None, expression))
-            parsed = ' '.join(expression)
-            print('---\n', parsed, file=self.GAE_STDOUT, end="\n\n")
 
             # Juntar llamados de funciones
             temp = []
@@ -764,18 +720,19 @@ class PGLogger(bdb.Bdb):
                         bracket = expression[0] == '('
                         part += expression.pop(0)
                         if bracket:
-                            while((bracket and not expression[0] == ')')): # Es ( y aún no encuentra )
+                            while(not expression[0] == ')'): # Es ( y aún no encuentra )
                                 part += expression.pop(0) + ' '
                         else:
-                            while(not bracket and (not expression[0] == ']' or # es [ y aún no encuentra ]
-                                (len(expression) > 1 and expression[1] == '['))): # o hay un nuevo [
+                            while(not expression[0] == ']' or # es [ y aún no encuentra ]
+                                (len(expression) > 1 and expression[1] in '[]')): # o hay un nuevo [
                                 part += expression.pop(0)
                         part = part.strip() + expression.pop(0)
-                    elif part == 'not' and expression[0] == 'in':
-                        part += expression.pop(0)
+                if part == 'not_in':
+                    part = 'not in'
                 temp.append(part)
             
             expression = temp
+            parsed = ' '.join(expression)
             def search_parenthesis_expr(expression):
                 parsed = []
                 parsed_part = ''
@@ -793,9 +750,6 @@ class PGLogger(bdb.Bdb):
                             encoded.append(encoded_part)
                         return parsed, encoded
                     elif part in LOGICALS or part in LOGICAL_OPERATORS:
-                        if part == 'not_in':
-                            part = 'not in'
-
                         if parsed_part:
                             parsed.append(parsed_part)
                             encoded.append(encoded_part)
@@ -826,46 +780,100 @@ class PGLogger(bdb.Bdb):
                 index_second = index + 2
 
                 first = eval_expression(exp[index_first], enc[index_first], trace, '{0}{1}>'.format(tree, index_first))
+                encoded_first = self.encoder.encode(first, False)
+                first_multilevel = 0 in enc[index_first]
+                prev_first_part = enc[index_first][0] if first_multilevel else enc[index_first]
+                if type(prev_first_part) == list:
+                    first_multilevel = False
+                    prev_first_part = prev_first_part[0]
+                override_first = (first_multilevel and len(enc[index_first]) > 1) or not prev_first_part['type'] == 'variable'
+                if override_first:
+                    update_trace(copy.deepcopy(encoded), first, tree + str(index_first))
+                exp[index_first] = first
+                enc[index_first] = encode_part(first) if override_first else prev_first_part
+                
                 if index_operator >= len(exp) - 1 or exp[index_operator] not in LOGICAL_OPERATORS:
-                    enc_copy = copy.deepcopy(encoded)
-                    exp[index_first] = first
-                    enc[index_first] = encode_part(first)
-                    return first, enc_copy, False
+                    return first
 
-                operator = exp[index_operator]
-                second = eval_expression(exp[index_second], enc[index_second], trace, '{0}{1}>'.format(tree, index_second))
-                to_eval = '{0} {1} {2}'.format(first, operator, second)
-                result = eval(to_eval, self.user_globals, self.user_locals)
-                enc_copy = copy.deepcopy(encoded)
-                del exp[index + 1 : index + 3]
-                del enc[index + 1 : index + 3]
+                must_eval = True
+                skipped_base = index_second
+                while(index_operator < len(exp) - 1 and exp[index_operator] in LOGICAL_OPERATORS):
+                    if must_eval:
+                        operator = exp[index_operator]
+                        second = eval_expression(exp[index_second], enc[index_second], trace, '{0}{1}>'.format(tree, index_second))
+                        to_eval = '{0} {1} {2}'.format(first, operator, second)
+                        result = eval(to_eval, self.user_globals, self.user_locals)
+                        encoded_second = self.encoder.encode(second, False)
+                        second_multilevel = 0 in enc[index_second]
+                        prev_second_part = enc[index_second][0] if second_multilevel else enc[index_second]
+                        if type(prev_second_part) == list:
+                            second_multilevel = False
+                            prev_second_part = prev_second_part[0]
+                        override_second = (second_multilevel and len(enc[index_second]) > 1) or not prev_second_part['type'] == 'variable'
+                        if override_second:
+                            update_trace(copy.deepcopy(encoded), second, tree + str(index_second))
+                        enc[index_second] = encode_part(second) if override_second else prev_second_part
+
+                        next_index_operator = index_operator + 2
+                        more_operations = next_index_operator < len(exp) - 1 and exp[next_index_operator] in LOGICAL_OPERATORS
+                        if not result and more_operations:
+                            enc[index_operator]['type'] = 'skipped'
+                            enc[index_operator]['message'] = 'No se evaluarán las expresiones a continuación debido a que esta expresión ya es falsa'
+                            must_eval = False
+
+                        update_trace(copy.deepcopy(encoded), result, tree + str(index_operator))
+
+                    index_operator = index_operator + 2
+                    index_second = index_second + 2
+                    first = second
+                
+                del exp[index + 1 : index_operator]
+                del enc[index + 1 : index_operator]
                 exp[index_first] = result
                 enc[index_first] = encode_part(result)
-                return result, enc_copy, True
+                return result
 
             def update_trace(enc, result, tree):
-                entry = dict(expression=enc, 
-                             result=result,
-                             tree=tree)
+                entry = dict(expression=enc, result=result, tree=tree)
                 trace.append(entry)
 
+            def update_encoded_part(encoded_part):
+                part = encoded_part['part']
+                found = False
+
+                if encoded_part['type'] == 'function':
+                    function = part + '('
+                    for param in encoded_part['params']:
+                        function += param['part'] + ', '
+                    part = function[:-2] + ')'
+                    encoded_part['part'] = part
+                    del encoded_part['params']
+                    found = True
+                if not found:
+                    without_str = re.sub(r'(["\'])(\\?.)*?\1', '', part)
+                    found = re.search(vars_list, without_str)
+
+                if found:
+                    value = eval(part, self.user_globals, self.user_locals)
+                    value = self.encoder.encode(value, False)
+                    encoded_part.update(dict(type='variable', value=value))
+        
             if isinstance(exp, list):
                 index = 0
                 while index < len(exp):
-                    print('---\n', encoded, file=self.GAE_STDOUT, end="\n\n")
                     curr_exp = exp[index]
                     curr_enc = enc[index]
                     curr_tree = tree + str(index)
+
+                    if curr_exp in LOGICAL_OPERATORS:
+                        index = index - 1
 
                     if isinstance(curr_exp, list):
                         result = eval_expression(curr_exp, curr_enc, trace, curr_tree + '>')
                         exp[index] = result
                         enc[index] = encode_part(result)
                     elif curr_exp in UNARY_LOGICALS:
-                        next_exp, enc_copy, has_sub = eval_subexpression(exp, enc, index + 1)
-                        if has_sub:
-                            update_trace(enc_copy, next_exp, tree + str(index + 2))
-
+                        next_exp = eval_subexpression(exp, enc, index + 1)
                         to_eval = '{0} {1}'.format(curr_exp, curr_enc, next_exp)
                         result = eval(to_eval, self.user_globals, self.user_locals)
                         update_trace(copy.deepcopy(encoded), result, curr_tree)
@@ -876,20 +884,17 @@ class PGLogger(bdb.Bdb):
                     elif curr_exp in BINARY_LOGICALS:
                         prev_result = exp[index - 1]
                         if curr_exp == 'or' and prev_result:
-                            exp_len = index + 2 < len(exp) - 1
-                            if exp_len and exp[index + 2] in LOGICAL_OPERATORS:
-                                del exp[index + 2 : index + 4]
-                                del enc[index + 2 : index + 4]
+                            index_base = index_to = index + 2
+                            while index_to < len(exp) - 1 and exp[index_to] in LOGICAL_OPERATORS:
+                                index_to = index_to + 2
+                            del exp[index_base : index_to]
+                            del enc[index_base : index_to]
                             exp[index + 1] = '?'
                             enc[index + 1] = encode_part('?')
                             result = True
                             update_trace(copy.deepcopy(encoded), result, curr_tree)
                         else:
-                            next_exp, enc_copy, has_sub = eval_subexpression(exp, enc, index + 1)
-                            if has_sub:
-                                update_trace(enc_copy, next_exp, tree + str(index + 2))
-                            exp[index + 1] = next_exp
-                            enc[index + 1] = encode_part(next_exp)
+                            next_exp = eval_subexpression(exp, enc, index + 1)
                             to_eval = '''{0} {1} {2}'''.format(prev_result, curr_exp, next_exp)
                             result = eval(to_eval, self.user_globals, self.user_locals)
                             update_trace(copy.deepcopy(encoded), result, curr_tree)
@@ -899,28 +904,38 @@ class PGLogger(bdb.Bdb):
                         exp[index] = result
                         enc[index] = encode_part(result)
                     else:
-                        result, enc_copy, has_sub = eval_subexpression(exp, enc, index)
-                        if has_sub:
-                            update_trace(enc_copy, result, tree + str(index + 1))
+                        result = eval_subexpression(exp, enc, index)
                     index = index + 1
                 ret = exp[0]
                 if type(ret) == str:
-                    ret = """'{0}'""".format(ret)
-                return exp[0]
+                    ret = "'{0}'".format(ret)
+                return ret
             else:
-                search_var_value(enc[0])
-                result = eval(exp, self.user_globals, self.user_locals)
+                try:
+                    result = eval(exp, self.user_globals, self.user_locals)
+                except TypeError:
+                    result = exp
+                
+                if 0 in enc:
+                    len_enc = len(enc)
+                    for index in range(len_enc):
+                        if enc[index]['type'] == 'variable':
+                            continue
+                        
+                        update_encoded_part(enc[index])
+                        if enc[index]['type'] == 'variable' and len_enc > 1:
+                            update_trace(copy.deepcopy(encoded), enc[index]['value'], tree + str(index))
+                else:
+                    update_encoded_part(enc)
+
                 if type(result) == str:
-                    result = """'{0}'""".format(result)
-                return result       
+                    result = "'{0}'".format(result)
+                return result
         
         trace = []
-        res = eval_expression(expression, encoded, trace, '')
-        ret = dict(exp_start=start, 
-                   exp_ends=end, 
-                   expression=parsed,
-                   result=res, 
-                   trace=trace)
+        result = eval_expression(expression, encoded, trace, '')
+        trace.append(dict(expression=encoded, result=result, tree='0'))
+        ret = dict(exp_start=start, exp_ends=end, expression=parsed, result=result, trace=trace)
         return ret
 
     def check_variable_value_changes(self, prev, current):
@@ -1298,7 +1313,7 @@ class PGLogger(bdb.Bdb):
             encoded_vars = {}
 
             user_locals = get_user_locals(cur_frame)
-            self.user_locals.update(copy.deepcopy(user_locals))
+            self.user_locals = copy.deepcopy(user_locals)
             for (k, v) in user_locals.items():
                 is_in_parent_frame = False
 
@@ -1979,37 +1994,34 @@ class PGLogger(bdb.Bdb):
             if DEBUG:
                 traceback.print_exc()
 
-            trace_entry = dict(event='uncaught_exception')
+            if not self.done:
+                (exc_type, exc_val, exc_tb) = sys.exc_info()
 
-            (exc_type, exc_val, exc_tb) = sys.exc_info()
-            trace_entry['line'] = self.lineno
-            if hasattr(exc_val, 'offset'):
-                trace_entry['offset'] = exc_val.offset
+                lineno = exc_val.lineno if hasattr(exc_val, 'lineno') else self.lineno
+                trace_entry = dict(event='uncaught_exception', line=lineno)
+                if hasattr(exc_val, 'offset'):
+                    trace_entry['offset'] = exc_val.offset
 
-            trace_entry['exception_msg'] = type(exc_val).__name__ + ": " +  str(exc_val)
+                trace_entry['exception_msg'] = type(exc_val).__name__ + ": " +  str(exc_val)
+                # SUPER SUBTLE! if ANY exception has already been recorded by
+                # the program, then DON'T record it again as an uncaught_exception.
+                # This looks kinda weird since the exact exception message doesn't
+                # need to match up, but in practice, there should be at most only
+                # ONE exception per trace.
+                already_caught = False
+                for e in self.trace:
+                    if e['event'] == 'exception':
+                        already_caught = True
+                        break
 
-            # SUPER SUBTLE! if ANY exception has already been recorded by
-            # the program, then DON'T record it again as an uncaught_exception.
-            # This looks kinda weird since the exact exception message doesn't
-            # need to match up, but in practice, there should be at most only
-            # ONE exception per trace.
-            already_caught = False
-            for e in self.trace:
-                if e['event'] == 'exception':
-                    already_caught = True
-                    break
-
-            if not already_caught:
-                if not self.done:
+                if not already_caught:
                     self.trace.append(trace_entry)
 
             raise bdb.BdbQuit # need to forceably STOP execution
 
-
     def force_terminate(self):
         #self.finalize()
         raise bdb.BdbQuit # need to forceably STOP execution
-
 
     def finalize(self):
         sys.stdout = self.GAE_STDOUT # very important!
@@ -2026,6 +2038,7 @@ class PGLogger(bdb.Bdb):
            res[-1]['event'] == 'return' and res[-1]['func_name'] == '<module>':
             res.pop()
 
+        self.trace = res
         return self.trace
 
 import json

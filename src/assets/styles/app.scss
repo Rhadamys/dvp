@@ -193,24 +193,6 @@ $symbolDimen: 32px;
     }
 }
 
-/* width */
-::-webkit-scrollbar, .ace_scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-    background-color: md-get-palette-color(grey, 400) !important;
-    border-radius: 10px;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-    background: $lightGrey !important;; 
-    border-radius: 10px;
-}
-
 .tutorial {
     background-color: rgba(0, 0, 0, 0.9);
     position: absolute;

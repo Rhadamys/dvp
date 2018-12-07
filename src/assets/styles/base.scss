@@ -26,6 +26,7 @@ $error: md-get-palette-color(deeporange, 200);
 $darkGrey: md-get-palette-color(grey, 900);
 $lightGrey: md-get-palette-color(grey, 700);
 $lighterGrey: md-get-palette-color(grey, 500);
+$whiteGrey: md-get-palette-color(grey, 400);
 
 .scrollable {
     overflow: auto !important;
@@ -126,4 +127,54 @@ $large: 16px;
        -moz-animation: $name $duration $iteration;
          -o-animation: $name $duration $iteration;
             animation: $name $duration $iteration;
+}
+
+$sliderSize: 16px;
+input[type="range"]::-webkit-slider-thumb {
+    box-shadow: 1px 1px 3px $darkGrey;
+    -webkit-appearance: none;
+    appearance: none;
+    width: $sliderSize;
+    height: $sliderSize;
+    border-radius: 50%; 
+    background: $accent;
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: $sliderSize;
+    height: $sliderSize;
+    border-radius: 50%;
+    background: $accent;
+    cursor: pointer;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 12px;
+    background: $lightGrey;
+    outline: none;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+    margin: 0;
+    z-index: 10;
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background-color: md-get-palette-color(grey, 400) !important;
+    border-radius: 10px;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: $lightGrey !important;; 
+    border-radius: 10px;
 }

@@ -1,16 +1,24 @@
 <template>
     <div class="expression expression-container" :style="{ 'background-color': color(depth, true) }">
-        <div v-for="(item, i) in parsed" :key="i">
+        <div v-for="(item, index) in parsed" :key="index">
             <div v-if="Array.isArray(item)" class="expression-container">
                 <div class="expression-par">(</div>
-                <expression :current="current" :depth="depth + 1" :parsed="item" :result="result" :tree="tree + i + '>'" 
-                    :class="currentItem(i) ? 'expression-current expression-current-' + item.result : ''"></expression>
+                <expression :current="current" 
+                    :depth="depth + 1"
+                    :parsed="item"
+                    :result="result"
+                    :tree="tree + index + '>'"
+                    class="expression-inner"></expression>
                 <div class="expression-par">)</div>
             </div>
-            <div v-else-if="typeof item === 'object' && '0' in item" class="expression-container" :class="currentItem(i) ? 'expression-current expression-current-' + result : ''">
-                <subexpression v-for="(sub, j) in item" :key="j" :item="sub"></subexpression>
-            </div>
-            <subexpression :item="item" :class="currentItem(i) ? 'expression-current expression-current-' + result : ''" v-else></subexpression>
+            <expression v-else-if="typeof item === 'object' && '0' in item" 
+                :current="current"
+                :depth="depth"
+                :parsed="item"
+                :result="result"
+                :tree="tree + index + '>'"
+                :class="currentClass(index)"></expression>
+            <subexpression :item="item" :class="currentClass(index)" v-else></subexpression>
         </div>
     </div>
 </template>
@@ -27,9 +35,14 @@ export default {
     },
     methods: { 
         ...Methods, 
+        currentClass: function(index) {
+            const is_current = this.currentItem(index)
+            const is_bool = typeof this.result === 'boolean'
+            return is_current ? 'expression-current expression-current-' + (is_bool ? this.result : 'sub') : ''
+        },
         currentItem: function(index) {
             return this.current === this.tree + index
-        }
+        },
     },
 }
 </script>

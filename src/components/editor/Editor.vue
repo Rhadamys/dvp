@@ -40,23 +40,23 @@ export default {
     created: function() {
         this.$root.$on(Events.CLEAR_HIGHLIGHT, this.reset)
         this.$root.$on(Events.HIGHLIGHT, this.highlight)
+        this.$root.$on(Events.RESIZE_EDITOR, () => this.$nextTick(() => { this.ace.editor.resize(true) }))
         this.$root.$on(Events.SCROLL_EDITOR, line => this.ace.editor.scrollToLine(line, true, true))
-        this.$on(Events.GO_ONLINE, () => {
-            if(this.requested) this.send() 
-        })
+        this.$on(Events.GO_ONLINE, () => { if(this.requested) this.send() })
     },
     mounted: function() {
         this.ace.editor = ace.edit('ace-editor')
         this.ace.editor.session.setMode('ace/mode/python')
-        this.ace.editor.renderer.setScrollMargin(10, 10, 10, 10)
         this.ace.editor.session.on('change', this.change)
         this.ace.editor.session.setValue(localStorage.getItem('script'))
+        this.ace.editor.setOptions({ autoScrollEditorIntoView: true })
     },
     methods: {
         /**
          * Callback para "onChange" de Ace Editor.
          */
         change: function(delta) {
+            console.log(delta)
             this.reset() // Elimina marcas del editor
             const last = localStorage.getItem('script')
             const current = this.ace.editor.session.getValue()

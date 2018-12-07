@@ -39,7 +39,6 @@
 <style lang="scss" src="@/assets/styles/editor.scss"></style>
 <script>
 import AnnotationTypes from '@/annotations'
-import VarTypes from '@/vartypes'
 import Const from '@/const'
 import Events from '@/events'
 import Conditional from '../components/conditional/Conditional'
@@ -324,7 +323,7 @@ export default {
             const cond = step.conditional || (step.loop ? step.loop.conditional : undefined)
             this.$root.$emit(Events.SET_CONDITIONAL, cond)
 
-            if(!(step.event === VarTypes.RETURN && this.stepping.current === this.stepping.last))
+            if(!(step.event === 'return' && this.stepping.current === this.stepping.last))
                 this.$root.$emit(Events.SCROLL_EDITOR, step.line)
 
             if(step.stdout === undefined) return
