@@ -42,6 +42,7 @@ export default {
         this.$root.$on(Events.HIGHLIGHT, this.highlight)
         this.$root.$on(Events.RESIZE_EDITOR, () => this.$nextTick(() => { this.ace.editor.resize(true) }))
         this.$root.$on(Events.SCROLL_EDITOR, line => this.ace.editor.scrollToLine(line, true, true))
+        this.$root.$on(Events.SET_SCRIPT, script => this.ace.editor.session.setValue(script))
         this.$on(Events.GO_ONLINE, () => { if(this.requested) this.send() })
     },
     mounted: function() {
@@ -56,7 +57,6 @@ export default {
          * Callback para "onChange" de Ace Editor.
          */
         change: function(delta) {
-            console.log(delta)
             this.reset() // Elimina marcas del editor
             const last = localStorage.getItem('script')
             const current = this.ace.editor.session.getValue()
@@ -123,7 +123,7 @@ export default {
             if(this.remaining.perc > 0) return
             clearInterval(this.remaining.interval)
             this.send()
-        }
+        },
     }
 }
 </script>

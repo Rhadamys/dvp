@@ -20,10 +20,24 @@
             <stepper class="stepper stepper-bottom"></stepper>
         </md-app-toolbar>
         <md-app-drawer :md-active.sync="showMenu">
+            <a id="download-script" style="display: none"></a>
             <md-toolbar class="md-transparent" md-elevation="0">
                 Depurador Visual para Python
             </md-toolbar>
             <md-list>
+                <li class="md-list-item">
+                    <label for="open-file" class="md-list-item-button md-list-item-container md-button-clean">
+                        <div class="md-list-item-content md-ripple">
+                            <md-icon>insert_drive_file</md-icon>
+                            <span class="md-list-item-text">Abrir archivo</span>
+                        </div>
+                    </label>
+                    <input id="open-file" type="file" style="display: none" @change="loadScriptFromFile" accept=".py"/>
+                </li>
+                <md-list-item id="download-script" @click="showNameDialog = true">
+                    <md-icon>save_alt</md-icon>
+                    <span class="md-list-item-text">Guardar como...</span>
+                </md-list-item>
                 <md-list-item md-expand :md-expanded.sync="tutorial.expanded">
                     <md-icon>help</md-icon>
                     <span class="md-list-item-text">Tutorial</span>
@@ -31,6 +45,7 @@
                         <md-list-item @click="showTutorial(1)">Editor de código</md-list-item>
                         <md-list-item @click="showTutorial(4)">Consola de E/S</md-list-item>
                         <md-list-item @click="showTutorial(6)">Panel de variables</md-list-item>
+                        <md-list-item @click="showTutorial(8)">Expresiones condicionales</md-list-item>
                     </md-list>
                 </md-list-item>
             </md-list>
@@ -139,7 +154,10 @@
                         <img src="@/assets/manual/mobile/consola-2.png" v-if="tutorial.step === 5">
                         <img src="@/assets/manual/mobile/variables-1.png" v-if="tutorial.step === 6">
                         <img src="@/assets/manual/mobile/variables-2.png" v-if="tutorial.step === 7">
-                        <img src="@/assets/manual/mobile/fin.png" v-if="tutorial.step === 8">
+                        <img src="@/assets/manual/mobile/condicional-0.png" v-if="tutorial.step === 8">
+                        <img src="@/assets/manual/mobile/condicional-1.png" v-if="tutorial.step === 9">
+                        <img src="@/assets/manual/mobile/condicional-2.png" v-if="tutorial.step === 10">
+                        <img src="@/assets/manual/mobile/fin.png" v-if="tutorial.step === 11">
                     </div>
                     <div class="tutorial-container-image" v-else>
                         <img src="@/assets/manual/desktop/editor-1.png" v-if="tutorial.step === 1">
@@ -149,10 +167,13 @@
                         <img src="@/assets/manual/desktop/consola-2.png" v-if="tutorial.step === 5">
                         <img src="@/assets/manual/desktop/variables-1.png" v-if="tutorial.step === 6">
                         <img src="@/assets/manual/desktop/variables-2.png" v-if="tutorial.step === 7">
-                        <img src="@/assets/manual/desktop/fin.png" v-if="tutorial.step === 8">
+                        <img src="@/assets/manual/desktop/condicional-0.png" v-if="tutorial.step === 8">
+                        <img src="@/assets/manual/desktop/condicional-1.png" v-if="tutorial.step === 9">
+                        <img src="@/assets/manual/desktop/condicional-2.png" v-if="tutorial.step === 10">
+                        <img src="@/assets/manual/desktop/fin.png" v-if="tutorial.step === 11">
                     </div>
                     <div class="tutorial-container-arrow selectable"
-                        v-show="tutorial.step < 8"
+                        v-show="tutorial.step < 11"
                         @click="tutorial.step += 1">
                         <md-icon>navigate_next</md-icon>
                     </div>
@@ -171,10 +192,11 @@
                 <span v-html="snack.message"></span>
             </md-snackbar>
             <md-dialog :md-active.sync="poll.show" @md-clicked-outside="resetTimer">
-                <md-dialog-title>¡Gracias por utilizar la aplicación!</md-dialog-title>
+                <md-dialog-title>¡Evalúa las nuevas funcionalidades!</md-dialog-title>
                 <md-dialog-content>
-                    Por favor, contesta esta <u>breve encuesta</u> para conocer tu opinión sobre el estado actual
-                    de la plataforma. Son cerca de 10 preguntas, no te tomará más de <u>2 minutos</u>!
+                    ¡Gracias por utilizar la aplicación! Por favor, contesta esta <u>breve encuesta</u> 
+                    para conocer tu opinión sobre las nuevas funcionalidades. Son cerca de 5 
+                    preguntas, no te tomará más de <u>1 minuto</u>!
                 </md-dialog-content>
                 <md-dialog-actions>
                     <md-button class="md-primary" @click="dismissPoll(false)" :href="poll.url" target="_blank">Sí</md-button>
@@ -186,6 +208,38 @@
                 :md-active.sync="poll.later"
                 md-title="Oh... No pasa nada! ;)"
                 md-content="Puedes contestar la encuesta en cualquier momento presionando el botón rojo en la <u>esquina superior derecha</u> de la aplicación." />
+            <md-dialog-prompt
+                :md-active.sync="showNameDialog"
+                v-model="fileName"
+                md-title="Guardar código a archivo"
+                md-input-maxlength="32"
+                md-input-placeholder="Ingresa un nombre para el archivo..."
+                md-cancel-text="Cancelar"
+                md-confirm-text="Guardar"
+                :md-confirm="saveFile"/>
+            <md-dialog :md-active.sync="news.show">
+                <md-dialog-title>¡Nuevas funcionalidades!</md-dialog-title>
+                <md-dialog-content>
+                    <p>
+                        Utiliza el panel de <u>Expresiones condicionales</u> para observar en detalle la
+                        evaluación de una expresión condicional. Puedes encontrar mayor información en
+                        <u>Tutorial > Expresiones condicionales</u>.
+                    </p>
+                    <img src="@/assets/news/condicional.png" class="md-dialog-image">
+                    <p>
+                        Ahora puedes abrir y guardar archivos .py en tu dispositivo! Para esto, accede al
+                        menú lateral y verás las siguientes opciones:
+                    </p>
+                    <img src="@/assets/news/files.png" class="md-dialog-image">
+                    <p>
+                        Si es primera vez que utilizas la aplicación, te invito a ver el <u>Tutorial</u>
+                        para conocer más acerca de las características de la plataforma.
+                    </p>
+                </md-dialog-content>
+                <md-dialog-actions>
+                    <md-button class="md-primary" @click="news.show = false">Entendido</md-button>
+                </md-dialog-actions>
+            </md-dialog>
         </md-app-content>
     </md-app>
 </template>
@@ -198,6 +252,11 @@ export default {
     data: function() {
         return {
             contactUrl: 'https://goo.gl/forms/RkbI0jGidSP2DWYn1',
+            fileName: '',
+            news: {
+                show: false,
+                tag: 'condicional'
+            },
             poll: {
                 lapse: 180000, // 3 minutos
                 later: false,
@@ -205,6 +264,7 @@ export default {
                 timer: undefined,
                 url: 'https://goo.gl/forms/GHc25unyX2eEtuoj2',
             },
+            showNameDialog: false,
             showMenu: false,
             snack: {
                 className: undefined,
@@ -213,7 +273,7 @@ export default {
                 show: false,
             },
             tutorial: {
-                expanded: true,
+                expanded: false,
                 show: false,
                 step: 1,
             },
@@ -224,6 +284,12 @@ export default {
     },
     created: function() {
         this.$root.$on(Events.SHOW_SNACK, this.showSnack)
+
+        const news = localStorage.getItem('news')
+        if(news !== this.news.tag) {
+            this.news.show = true
+            localStorage.setItem('news', this.news.tag)
+        }
 
         // Crea un timer para contestar encuesta, si es que no se ha marcado para "ignorarla"
         const encuesta = localStorage.getItem('encuesta')
@@ -238,12 +304,32 @@ export default {
             this.poll.show = false
             this.poll.later = later
         },
+        loadScriptFromFile: function(ev) {
+            const file = ev.target.files[0]
+            const reader = new FileReader()
+            reader.readAsText(file)
+            reader.onload = e => this.$root.$emit(Events.SET_SCRIPT, e.target.result)
+            this.showMenu = false
+            document.getElementById('open-file').value = ''
+        },
         resetTimer: function() {
             clearTimeout(this.poll.timer)
             this.poll.timer = setTimeout(() => {
                 this.poll.show = true
             }, this.poll.lapse)
             this.poll.show = false
+        },
+        saveFile: function() {
+            const script = localStorage.getItem('script')
+            const blob = new Blob([script], { type: 'text/plain' })
+            const e = document.createEvent('MouseEvents')
+            const a = document.getElementById('download-script')
+            a.download = this.fileName + '.py'
+            a.href = window.URL.createObjectURL(blob)
+            a.dataset.downloadurl = ['text/plain', a.download, a.href].join(':')
+            e.initEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+            a.dispatchEvent(e)
+            this.fileName = ''
         },
         showMenuTutorial: function() {
             this.tutorial.expanded = true
@@ -259,7 +345,7 @@ export default {
             this.tutorial.step = step
             this.tutorial.show = true
             this.showMenu = false
-        }
-    }
+        },
+    },
 }
 </script>

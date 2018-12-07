@@ -29,6 +29,12 @@ html, body {
         background-color: md-get-palette-color(red, 700) !important;
         padding-bottom: 20px; 
     }
+
+    &-image {
+        max-width: 90%;
+        margin: auto;
+        display: block;
+    }
 }
 
 .group-vertical {
