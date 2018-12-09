@@ -50,11 +50,11 @@ else:
     import StringIO
 import pg_encoder
 
-BINARY_LOGICALS = ['and', 'or', '&', '|', '^', 'in', 'not in', 'not_in']
+BINARY_LOGICALS = ['and', 'or', '&', '|', '^']
 UNARY_LOGICALS = ['not', '~']
 LOGICALS = BINARY_LOGICALS + UNARY_LOGICALS
 
-LOGICAL_OPERATORS = ['<', '<=', '>=', '>', '==', '!=', '<>', '=']
+LOGICAL_OPERATORS = ['<', '<=', '>=', '>', '==', '!=', '<>', '=', 'in', 'not in', 'not_in']
 MATH_OPERATORS = [ '+', '-', '*', '/', '**', '//', '%']
 OPERATORS = LOGICAL_OPERATORS + MATH_OPERATORS
 
@@ -642,8 +642,19 @@ class PGLogger(bdb.Bdb):
                 line += ' ' + current
                 end += 1
 
-        if line.startswith('(') and line.endswith(')'):
-            line = line[1 : -1]
+        if line.startswith('('):
+            brackets = 1
+            index = 1
+            len_line = len(line)
+            while(brackets > 0 and index < len_line):
+                current = line[index]
+                if current == '(':
+                    brackets = brackets + 1
+                elif current == ')':
+                    brackets = brackets - 1
+                index = index + 1
+            if index == len_line:
+                line = line[1 : -1]
         
         vars_list = self.current_stack['global']['ordered_varnames']
         current_scope = self.current_stack['ordered_scopes'][-1]
@@ -662,10 +673,7 @@ class PGLogger(bdb.Bdb):
                 v_type = part
                 part = str(part)
             elif v_type == str:
-                if part == '?':
-                    v_type = 'skipped'
-                    ret['message'] = 'No se evaluó debido a que la primera expresión ya es verdadera'
-                elif '(' in part and not part.startswith('('):
+                if '(' in part and not part.startswith('('):
                     v_type = 'function'
                     n_part = part.replace('(', ',').strip(')').strip(' ').split(',')
                     part = n_part.pop(0)
@@ -697,7 +705,7 @@ class PGLogger(bdb.Bdb):
 
         def decompose_expression(expression):
             NOT_A_FUNCTION = LOGICALS + OPERATORS
-            ADD_SPACE = NOT_A_FUNCTION + ['(', ')']
+            ADD_SPACE = NOT_A_FUNCTION + BRACKETS
             for exp in ADD_SPACE:
                 if exp.isalpha():
                     continue
@@ -716,17 +724,22 @@ class PGLogger(bdb.Bdb):
             while expression:
                 part = expression.pop(0)
                 if expression:
-                    if not(part in NOT_A_FUNCTION or part[0].isdigit()) and (expression[0] == '(' or expression[0] == '['):
+                    if not(part in NOT_A_FUNCTION or part[0].isdigit()) and expression[0] in '([':
                         bracket = expression[0] == '('
                         part += expression.pop(0)
                         if bracket:
                             while(not expression[0] == ')'): # Es ( y aún no encuentra )
                                 part += expression.pop(0) + ' '
+                            part = part.strip() + expression.pop(0)
                         else:
-                            while(not expression[0] == ']' or # es [ y aún no encuentra ]
-                                (len(expression) > 1 and expression[1] in '[]')): # o hay un nuevo [
-                                part += expression.pop(0)
-                        part = part.strip() + expression.pop(0)
+                            brackets = 1
+                            while(brackets > 0 or expression[0] in '[]'): # o hay un nuevo [
+                                current = expression.pop(0)
+                                if current == '[':
+                                    brackets = brackets + 1
+                                elif current == ']':
+                                    brackets = brackets - 1
+                                part += current
                 if part == 'not_in':
                     part = 'not in'
                 temp.append(part)
@@ -775,48 +788,42 @@ class PGLogger(bdb.Bdb):
         expression, encoded, parsed = decompose_expression(line)
         def eval_expression(exp, enc, trace, tree):
             def eval_subexpression(exp, enc, index):
+                def eval_part(index):
+                    part = eval_expression(exp[index], enc[index], trace, '{0}{1}>'.format(tree, index))
+                    is_multilevel = 0 in enc[index]
+                    prev_part = enc[index][0] if is_multilevel else enc[index]
+                    if type(prev_part) == list:
+                        is_multilevel = False
+                        prev_part = prev_part[0]
+                    override = (is_multilevel and len(enc[index]) > 1) or not prev_part['type'] in [True, False, 'variable']
+                    if override:
+                        update_trace(copy.deepcopy(encoded), part, tree + str(index))
+                    exp[index] = part
+                    enc[index] = encode_part(part) if override else prev_part
+                    return part
+
+                def has_more_parts(index):
+                    return index < len(exp) - 1 and exp[index] in LOGICAL_OPERATORS
+
                 index_first = index
                 index_operator = index + 1
                 index_second = index + 2
 
-                first = eval_expression(exp[index_first], enc[index_first], trace, '{0}{1}>'.format(tree, index_first))
-                encoded_first = self.encoder.encode(first, False)
-                first_multilevel = 0 in enc[index_first]
-                prev_first_part = enc[index_first][0] if first_multilevel else enc[index_first]
-                if type(prev_first_part) == list:
-                    first_multilevel = False
-                    prev_first_part = prev_first_part[0]
-                override_first = (first_multilevel and len(enc[index_first]) > 1) or not prev_first_part['type'] == 'variable'
-                if override_first:
-                    update_trace(copy.deepcopy(encoded), first, tree + str(index_first))
-                exp[index_first] = first
-                enc[index_first] = encode_part(first) if override_first else prev_first_part
-                
-                if index_operator >= len(exp) - 1 or exp[index_operator] not in LOGICAL_OPERATORS:
+                first = eval_part(index_first)
+                if not has_more_parts(index_operator):
                     return first
 
                 must_eval = True
                 skipped_base = index_second
-                while(index_operator < len(exp) - 1 and exp[index_operator] in LOGICAL_OPERATORS):
+                while(has_more_parts(index_operator)):
                     if must_eval:
                         operator = exp[index_operator]
-                        second = eval_expression(exp[index_second], enc[index_second], trace, '{0}{1}>'.format(tree, index_second))
+                        second = eval_part(index_second)
                         to_eval = '{0} {1} {2}'.format(first, operator, second)
                         result = eval(to_eval, self.user_globals, self.user_locals)
-                        encoded_second = self.encoder.encode(second, False)
-                        second_multilevel = 0 in enc[index_second]
-                        prev_second_part = enc[index_second][0] if second_multilevel else enc[index_second]
-                        if type(prev_second_part) == list:
-                            second_multilevel = False
-                            prev_second_part = prev_second_part[0]
-                        override_second = (second_multilevel and len(enc[index_second]) > 1) or not prev_second_part['type'] == 'variable'
-                        if override_second:
-                            update_trace(copy.deepcopy(encoded), second, tree + str(index_second))
-                        enc[index_second] = encode_part(second) if override_second else prev_second_part
 
                         next_index_operator = index_operator + 2
-                        more_operations = next_index_operator < len(exp) - 1 and exp[next_index_operator] in LOGICAL_OPERATORS
-                        if not result and more_operations:
+                        if not result and has_more_parts(next_index_operator):
                             enc[index_operator]['type'] = 'skipped'
                             enc[index_operator]['message'] = 'No se evaluarán las expresiones a continuación debido a que esta expresión ya es falsa'
                             must_eval = False
@@ -874,7 +881,7 @@ class PGLogger(bdb.Bdb):
                         enc[index] = encode_part(result)
                     elif curr_exp in UNARY_LOGICALS:
                         next_exp = eval_subexpression(exp, enc, index + 1)
-                        to_eval = '{0} {1}'.format(curr_exp, curr_enc, next_exp)
+                        to_eval = '{0} {1}'.format(curr_exp, next_exp)
                         result = eval(to_eval, self.user_globals, self.user_locals)
                         update_trace(copy.deepcopy(encoded), result, curr_tree)
                         exp.pop(index)
@@ -883,15 +890,15 @@ class PGLogger(bdb.Bdb):
                         enc[index] = encode_part(result)
                     elif curr_exp in BINARY_LOGICALS:
                         prev_result = exp[index - 1]
-                        if curr_exp == 'or' and prev_result:
+                        if (curr_exp == 'or' and prev_result == True) or (curr_exp == 'and' and prev_result == False):
                             index_base = index_to = index + 2
                             while index_to < len(exp) - 1 and exp[index_to] in LOGICAL_OPERATORS:
                                 index_to = index_to + 2
                             del exp[index_base : index_to]
                             del enc[index_base : index_to]
+                            result = curr_exp == 'or'
                             exp[index + 1] = '?'
-                            enc[index + 1] = encode_part('?')
-                            result = True
+                            enc[index + 1] = dict(part='?', type='skipped', message='No se evaluó debido a que la primera expresión ya es {0}'.format('verdadera' if result else 'falsa'))
                             update_trace(copy.deepcopy(encoded), result, curr_tree)
                         else:
                             next_exp = eval_subexpression(exp, enc, index + 1)
@@ -921,10 +928,7 @@ class PGLogger(bdb.Bdb):
                     for index in range(len_enc):
                         if enc[index]['type'] == 'variable':
                             continue
-                        
                         update_encoded_part(enc[index])
-                        if enc[index]['type'] == 'variable' and len_enc > 1:
-                            update_trace(copy.deepcopy(encoded), enc[index]['value'], tree + str(index))
                 else:
                     update_encoded_part(enc)
 
@@ -1984,6 +1988,7 @@ class PGLogger(bdb.Bdb):
                 del sys.modules['os.path']
                 del sys.modules['sys']
 
+            self.lineno = 1
             self.user_globals = user_globals
             self.run(script_str, user_globals, user_globals)
         # sys.exit ...
@@ -2003,19 +2008,7 @@ class PGLogger(bdb.Bdb):
                     trace_entry['offset'] = exc_val.offset
 
                 trace_entry['exception_msg'] = type(exc_val).__name__ + ": " +  str(exc_val)
-                # SUPER SUBTLE! if ANY exception has already been recorded by
-                # the program, then DON'T record it again as an uncaught_exception.
-                # This looks kinda weird since the exact exception message doesn't
-                # need to match up, but in practice, there should be at most only
-                # ONE exception per trace.
-                already_caught = False
-                for e in self.trace:
-                    if e['event'] == 'exception':
-                        already_caught = True
-                        break
-
-                if not already_caught:
-                    self.trace.append(trace_entry)
+                self.trace.append(trace_entry)
 
             raise bdb.BdbQuit # need to forceably STOP execution
 
