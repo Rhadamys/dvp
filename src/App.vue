@@ -185,12 +185,15 @@
             <transition name="component-fade" mode="out-in">
                 <router-view></router-view>
             </transition>
-            <md-snackbar class="card-danger" md-position="center" :md-duration="Infinity" :md-active="isOffline" md-theme="default-light" md-persistent>
-                <span><u>Se ha perdido la conexión a internet</u>. Los cambios que realices se enviarán para su ejecución una vez que recuperes la conexión...</span>
-            </md-snackbar>
-            <md-snackbar md-position="center" :md-duration="snack.duration" :md-active.sync="snack.show" md-theme="default-light" :class="snack.className" md-persistent>
-                <span v-html="snack.message"></span>
-            </md-snackbar>
+            <md-dialog-prompt
+                :md-active.sync="showNameDialog"
+                v-model="fileName"
+                md-title="Guardar código a archivo"
+                md-input-maxlength="32"
+                md-input-placeholder="Ingresa un nombre para el archivo..."
+                md-cancel-text="Cancelar"
+                md-confirm-text="Guardar"
+                @md-confirm="saveFile"/>
             <md-dialog :md-active.sync="poll.show" @md-clicked-outside="resetTimer">
                 <md-dialog-title>¡Evalúa las nuevas funcionalidades!</md-dialog-title>
                 <md-dialog-content>
@@ -208,15 +211,6 @@
                 :md-active.sync="poll.later"
                 md-title="Oh... No pasa nada! ;)"
                 md-content="Puedes contestar la encuesta en cualquier momento presionando el botón rojo en la <u>esquina superior derecha</u> de la aplicación." />
-            <md-dialog-prompt
-                :md-active.sync="showNameDialog"
-                v-model="fileName"
-                md-title="Guardar código a archivo"
-                md-input-maxlength="32"
-                md-input-placeholder="Ingresa un nombre para el archivo..."
-                md-cancel-text="Cancelar"
-                md-confirm-text="Guardar"
-                :md-confirm="saveFile"/>
             <md-dialog :md-active.sync="news.show">
                 <md-dialog-title>¡Nuevas funcionalidades!</md-dialog-title>
                 <md-dialog-content>
@@ -240,6 +234,12 @@
                     <md-button class="md-primary" @click="news.show = false">Entendido</md-button>
                 </md-dialog-actions>
             </md-dialog>
+            <md-snackbar class="card-danger" md-position="center" :md-duration="Infinity" :md-active="isOffline" md-theme="default-light" md-persistent>
+                <span><u>Se ha perdido la conexión a internet</u>. Los cambios que realices se enviarán para su ejecución una vez que recuperes la conexión...</span>
+            </md-snackbar>
+            <md-snackbar md-position="center" :md-duration="snack.duration" :md-active.sync="snack.show" md-theme="default-light" :class="snack.className" md-persistent>
+                <span v-html="snack.message"></span>
+            </md-snackbar>
         </md-app-content>
     </md-app>
 </template>
@@ -322,13 +322,10 @@ export default {
         saveFile: function() {
             const script = localStorage.getItem('script')
             const blob = new Blob([script], { type: 'text/plain' })
-            const e = document.createEvent('MouseEvents')
             const a = document.getElementById('download-script')
             a.download = this.fileName + '.py'
             a.href = window.URL.createObjectURL(blob)
-            a.dataset.downloadurl = ['text/plain', a.download, a.href].join(':')
-            e.initEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
-            a.dispatchEvent(e)
+            a.click()
             this.fileName = ''
         },
         showMenuTutorial: function() {
