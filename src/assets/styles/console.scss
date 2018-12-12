@@ -1,8 +1,11 @@
-@import "./base.scss";
-                 
 .io {
     background: black !important;
     font-family: monospace;
+    @include height-transition(ease-out);
+
+    .md-title {
+        flex: 1;
+    }
 
     .md-card-actions {
         border-bottom: 1px solid white;
@@ -10,6 +13,7 @@
         padding-left: 16px;
         height: $headerHeight;
         min-height: $headerHeight !important;
+        justify-content: flex-start;
     }
 
     .console {
@@ -45,5 +49,15 @@
             bottom: 4px;
             right: 6px;
         }
+
+        &-resize {
+            min-width: 0 !important;
+            width: 32px !important;
+        }
+    }
+
+    &-minimized {
+        height: $headerHeight + $xsmall !important;
+        @include height-transition(ease-in);
     }
 }

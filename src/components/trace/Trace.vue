@@ -1,56 +1,60 @@
 <template>
-    <md-card class="trace">
-        <md-tabs class="md-primary" v-if="stack.order.length > 0">
-            <md-tab v-for="(scope_name, index) in stack.order" :key="index"
-                :id="'tab-scope-' + index"
-                :md-label="tagName(scope_name)">
-                <scope :scope="stack.scopes[scope_name]"></scope>
+    <md-card class="trace" :class="{ 'trace-minimized': hide && !expanded }">
+        <md-tabs class="md-primary" v-if="stack.order.length > 0" :md-active-tab="current" @md-changed="current = $event">
+            <md-tab v-for="scope_name in stack.order" :key="scope_name" :id="scope_name" :md-label="tagName(scope_name)">
+                <scope :name="scope_name" :scope="stack.scopes[scope_name]" :step="step" :timeline="timeline"></scope>
             </md-tab>
         </md-tabs>
-        <md-card-content v-else>
+        <md-card-content v-else-if="!hide || expanded">
             <p class="text-center">Aún no se ha definido alguna variable</p>
         </md-card-content>
+        <md-button class="md-dense trace-button trace-button-alternate" @click="timeline = !timeline" v-if="timeline">
+            <md-icon >view_list</md-icon>
+            <md-tooltip v-if="!isMobile()" md-direction="left">Ver agrupado</md-tooltip>
+        </md-button>
+        <md-button class="md-dense trace-button trace-button-alternate" @click="timeline = !timeline" v-else>
+            <md-icon>timeline</md-icon>
+            <md-tooltip v-if="!isMobile()" md-direction="left">Ver como línea de tiempo</md-tooltip>
+        </md-button>
+        <md-button class="md-dense trace-button trace-button-sizing" @click="$emit('resize')">
+            <md-icon v-if="expanded">keyboard_arrow_down</md-icon>
+            <md-icon v-else-if="hide">remove</md-icon>
+            <md-icon v-else>keyboard_arrow_up</md-icon>
+            <md-tooltip v-if="!isMobile()" md-direction="left">
+                {{ expanded ? messages.minimize : hide ? messages.neutral : messages.maximize }}
+            </md-tooltip>
+        </md-button>
     </md-card>
 </template>
-<style lang="scss" src="@/assets/styles/trace.scss"></style>
 <script>
+import Const from '@/const'
 import Events from '@/events'
 import Scope from './Scope'
 
 export default {
+    props: ['hide', 'expanded', 'step'],
     data: function() {
         return {
+            current: '',
+            messages: Const.SIZING_MESSAGES,
             stack: {
                 order: [], 
                 scopes: [] 
             },
+            timeline: false,
         }
     },
     components: {
         'scope': Scope,
     },
     created: function() {
-        this.$root.$on(Events.SET_TRACE, this.decodeTrace)
+        this.$root.$on(Events.SET_TRACE, stack => this.stack = stack)
         this.$root.$on(Events.RESET, this.reset)
     },
     methods: {
-        decodeTrace: function(stack) {
-            if(stack == undefined) return
-            const temp_stack = { order: [], scopes: {} }
-            stack.ordered_scopes.forEach(scope_name => {
-                const scope = stack[scope_name]
-                let scope_entries = []
-                if(scope_name === 'global') 
-                    scope_entries.push(scope)
-                else {
-                    scope.ordered_hashes.forEach(hash => {
-                        scope_entries.push(scope[hash])
-                    })
-                }
-                temp_stack.scopes[scope_name] = scope_entries
-            })
-            temp_stack.order = stack.ordered_scopes
-            this.stack = Object.assign({}, this.stack, temp_stack)
+        active: function(tab) {
+            console.log('-----------------')
+            console.log(tab)
         },
         tagName: function(name) {
             const len = this.stack.scopes[name].length
@@ -60,5 +64,11 @@ export default {
             this.stack = Object.assign({}, this.stack, { order: [], scopes: {} })
         }
     },
+    watch: {
+        step: function() {
+            if(this.stack.order.includes(this.current)) return
+            this.current = 'global'
+        }
+    }
 }
 </script>

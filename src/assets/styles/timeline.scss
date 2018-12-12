@@ -1,0 +1,164 @@
+$minDimen: 46px;
+$firstCol: 96px;
+$headSize: 32px;
+.timeline {
+    width: 100%;
+    height: 100%;
+
+    &-background {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        height: 100%;
+        width: 100%;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        
+        &-head {
+            background-color: $darkGrey !important;
+            border-bottom: 2px solid white;
+            height: $headSize + 2px;
+        }
+
+        &-body {
+            display: flex;
+            width: 100%;
+            flex: 1;
+
+            &-content {
+                background-color: md-get-palette-color(grey, 400);
+                height: 100%;
+                flex: 1;
+            }
+        }
+    }
+
+    &-returned {
+        background-color: md-get-palette-color(red, 500) !important;
+
+        &-cell {
+            background-color: rgba(244, 67, 54, .5) !important;
+        }
+        &-head {
+            background-color: $lightGrey !important;
+            @include background-color-transition;
+        }
+    }
+
+    table {
+        position: relative;
+        border-spacing: 0;
+        border-collapse: collapse;
+        overflow: hidden;
+        table-layout: fixed;
+        height: 100%;
+        width: 100%;
+        
+        thead {
+            position: relative;
+            display: block; /*seperates the header from the body allowing it to be positioned*/
+            width: 100%;
+            overflow: visible;
+        }
+        thead tr {
+            border-bottom: 2px solid white;
+        }
+        thead tr th:first-child {
+            position: relative;
+            display: block; /*seperates the first column from the tbody*/
+            width: $firstCol;
+            background-color: $darkGrey !important;
+            padding: $xsmall;
+            box-shadow: inset -22px 0px 25px -25px black !important;
+        }
+        thead tr th:nth-child(2) {
+            background-color: $accent !important;
+        }
+        thead tr th {
+            height: $headSize !important;
+            width: $minDimen;
+            min-width: $minDimen;
+            text-align: center !important;
+            background-color: $darkGrey !important;
+            padding: $xsmall;
+            font-weight: normal !important;
+        }
+        
+        tbody {
+            position: relative;
+            display: block; /*seperates the tbody from the header*/
+            width: 100%;
+            overflow: auto;
+            @include calc(height, "100% - #{$headSize}");
+        }
+        tbody tr td:first-child, .timeline-background-body-first {  /*the first cell in each tr*/
+            position: relative;
+            display: block; /*seperates the first column from the tbody*/
+            background-color: $secondary;
+            padding: $xsmall;
+            padding-left: $medium;
+            width: $firstCol;
+            box-shadow: inset -22px 0px 25px -25px black !important;
+            @include background-color-transition;
+        }
+        tbody tr td {  /*the first cell in each tr*/
+            background-color: transparent;
+            width: $minDimen;
+            min-width: $minDimen;
+            height: $minDimen;
+        }
+
+        tbody tr {
+            background-color: md-get-palette-color(grey, 500) !important;
+        }
+        tbody tr:nth-child(odd) {
+            background-color: md-get-palette-color(grey, 400) !important;
+        }
+    }
+
+    &-variable {
+        max-width: $minDimen;
+        width: 100%;
+        height: 100%;
+        padding: $xsmall;
+
+        &-value {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: $borderRadius;
+            padding: 4px;
+
+            span {
+                text-align: center;
+                width: 100%;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }
+        }
+    }
+
+    &-var-header {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+
+        span {
+            flex: 1;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        &-value {
+            width: auto !important;
+            max-width: $minDimen;
+        }
+    }
+}

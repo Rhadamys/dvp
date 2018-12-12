@@ -1,7 +1,7 @@
 <template>
     <div class="container md-layout md-gutter">
         <div class="md-layout-item md-size-50 md-small-size-100">
-            <md-card class="md-primary md-elevation-6 editor" md-theme="secondary">
+            <md-card class="md-primary md-elevation-6 editor">
                 <div class="editor-code-running" v-if="running.active" @click="running.dialog = true"></div>
                 <editor-toolbar :exceptions="exceptions" :stepping="stepping"></editor-toolbar>
                 <editor></editor>
@@ -23,8 +23,15 @@
             </md-card>
         </div>
         <div class="md-layout-item md-size-50 md-small-size-100 visual-panel">
-            <console class="md-elevation-6"></console>
-            <trace class="md-elevation-6"></trace>
+            <console class="md-elevation-6" 
+                :hide="expanded.trace" 
+                :expanded="expanded.console"
+                @resize="expanded.console = !expanded.console"></console>
+            <trace class="md-elevation-6" 
+                :hide="expanded.console" 
+                :expanded="expanded.trace" 
+                :step="stepping.current"
+                @resize="expanded.trace = !expanded.trace"></trace>
         </div>
         <md-snackbar md-position="left" :md-duration="Infinity" :md-active.sync="running.active" md-theme="default-light">
             <md-progress-spinner class="md-accent" :md-diameter="30" :md-value="timeout.perc" :md-mode="timeout.time > 0 ? 'determinate' : 'indeterminate'"></md-progress-spinner>
@@ -36,11 +43,11 @@
             :md-content="'Por favor, espera hasta que termine para realizar alguna acción en el editor. ' + (timeout.time > 0 ? 'La ejecución se detendrá automáticamente dentro de <u>' + timeout.time / 1000 + ' segundos</u>.' : '<u>Esperando respuesta del servidor...</u>')" />
         </div>
 </template>
-<style lang="scss" src="@/assets/styles/editor.scss"></style>
 <script>
-import AnnotationTypes from '@/annotations'
+import Annotations from '@/annotations'
 import Const from '@/const'
 import Events from '@/events'
+import Parser from '@/parser'
 import Conditional from '../components/conditional/Conditional'
 import Editor from '../components/editor/Editor'
 import IOConsole from '../components/Console'
@@ -67,6 +74,14 @@ export default {
                  */
                 searching: true,
                 warnings: [],
+            },
+            expanded: {
+                console: false,
+                trace: false,
+            },
+            parsed: {
+                conditional: {},
+                stack: {},
             },
             running: {
                 active: false,
@@ -96,9 +111,7 @@ export default {
         'trace': Trace,
     },
     created: function() {
-        this.$root.$on(Events.REQUEST_STEPPING, () => {
-            this.$root.$emit(Events.UPDATE_STEPPING, this.stepping)
-        })
+        this.$root.$on(Events.REQUEST_STEPPING, () => { this.$root.$emit(Events.UPDATE_STEPPING, this.stepping) })
         this.$root.$on(Events.SEND_INPUT, this.send)
         this.$root.$on(Events.SEND_SCRIPT, this.send)
         this.$root.$on(Events.SET_STEP, (step) => {
@@ -150,6 +163,7 @@ export default {
          * @param data Respuesta del servidor.
          */
         response: function(data) {
+            this.parsed = { conditional: {}, stack: {} }
             this.trace = data
             
             // Elimina las excepciones de la ejecución anterior
@@ -182,15 +196,25 @@ export default {
          * @param index Número de paso de ejecución
          */
         renderStep: function(step, index) {
+            if(this.exceptions.searching) {
+                if(step.stack_to_render)
+                    this.parsed.stack[index] = new Promise(function(resolve, reject) { resolve(Parser.parseStack(step.stack_to_render)) })
+                if(step.conditional || (step.loop && step.loop.conditional)) {
+                    const cond = step.conditional || step.loop.conditional
+                    this.parsed.conditional[index] = new Promise(function(resolve, reject) { resolve(Parser.parseConditional(cond)) })
+                }
+            }
+
             if(step.event === Const.EVENT_LIMIT_REACHED) { // Límite de pasos
                 this.renderLimitReached(step, index - 1)
                 return
             } else if(step.event === Const.EVENT_RAW_INPUT) { // Input
-                this.renderPrompt(step, this.trace[index - 1], step)
+                this.renderPrompt(step, this.trace[index - 1])
+                this.finishRender(step, index)
                 return
             } else if(step.event === Const.EVENT_EXCEPTION && index < this.stepping.last) { // Excepción controlada
                 this.renderException(step, index)
-            } else if(step.event.includes('exception')) { // Excepción al final
+            } else if(step.event.includes(Const.EVENT_EXCEPTION)) { // Excepción al final
                 this.renderUncaughtException(step, index)
                 return
             }
@@ -199,7 +223,7 @@ export default {
                 const next = this.trace[index + 1]
                 this.renderLastStep(step, next, index)
                 this.$root.$emit(Events.CLEAR_INPUT)
-                this.finishRender(step)
+                this.finishRender(step, index)
             } 
         },
         /**
@@ -214,7 +238,7 @@ export default {
                 row: current_row, 
                 column: 0, 
                 text: 'Línea actual', 
-                type: AnnotationTypes.CURRENT_LINE
+                type: Annotations.CURRENT_LINE
             })
             
             if(next === undefined) return
@@ -223,7 +247,7 @@ export default {
                 row: next_row, 
                 column: 0, 
                 text: 'Línea siguiente', 
-                type: AnnotationTypes.NEXT_LINE
+                type: Annotations.NEXT_LINE
             })
         },
         /**
@@ -235,7 +259,7 @@ export default {
         renderLimitReached: function(step, last_index) {
             this.exceptions.limit.message = step.exception_msg
             this.exceptions.limit.reached = true
-            this.finishRender(last_index < 0 ? step : this.trace[last_index])
+            this.finishRender(last_index < 0 ? step : this.trace[last_index], last_index)
 
             // Si el límite se alcanzo por número de pasos ejecutado
             if(step.limit === Const.LIMIT_REACHED_BY_STEPS)
@@ -247,7 +271,7 @@ export default {
                 row: 0,
                 column: 0,
                 text: Const.LIMIT_REACHED_BY_TIME,
-                type: AnnotationTypes.ERROR
+                type: Annotations.ERROR
             })
             
         },
@@ -262,7 +286,7 @@ export default {
                 row: row,
                 column: exception.offset, 
                 text: exception.exception_msg, 
-                type: AnnotationTypes.WARNING
+                type: Annotations.WARNING
             })
 
             if(!this.exceptions.searching) return
@@ -283,9 +307,9 @@ export default {
                 row: row,
                 column: exception.offset,
                 text: exception.exception_msg,
-                type: AnnotationTypes.ERROR
+                type: Annotations.ERROR
             })
-            this.finishRender(exception)
+            this.finishRender(exception, index)
 
             if(!this.exceptions.searching) return
             this.exceptions.errors.push({
@@ -298,31 +322,33 @@ export default {
          * Renderiza los elementos propios de una solicitud de ingreso de datos por pantalla.
          * @param raw_input Objeto JSON que indica, entre otras cosas, el mensaje del "input"
          * @param last_step Número del paso anterior en la ejecución
-         * @param step Paso actual en la ejecución
          */
-        renderPrompt: function(raw_input, last_step, step) {
+        renderPrompt: function(raw_input, last_step) {
             this.$root.$emit(Events.PROMPT_INPUT, raw_input)
             const row = last_step.line - 1
             this.$root.$emit(Events.HIGHLIGHT, {
                 row: row, 
                 column: 0, 
                 text: Const.PROMPT, 
-                type: AnnotationTypes.PROMPT
+                type: Annotations.PROMPT
             })
-            this.finishRender(step)
         },
         /**
          * Renderiza los últimos elementos.
          * @param step Paso actual
          */
-        finishRender: function(step) {
+        finishRender: function(step, index) {
             this.running.active = false
             this.running.dialog = false
-            this.$root.$emit(Events.SET_TRACE, step.stack_to_render)
-            
-            const cond = step.conditional || (step.loop ? step.loop.conditional : undefined)
-            this.$root.$emit(Events.SET_CONDITIONAL, cond)
 
+            if(index in this.parsed.stack)
+                this.parsed.stack[index].then(stack => this.$root.$emit(Events.SET_TRACE, stack))
+
+            if(index in this.parsed.conditional)
+                this.parsed.conditional[index].then(cond => this.$root.$emit(Events.SET_CONDITIONAL, cond))
+            else
+                this.$root.$emit(Events.SET_CONDITIONAL, undefined)
+            
             if(!(step.event === 'return' && this.stepping.current === this.stepping.last))
                 this.$root.$emit(Events.SCROLL_EDITOR, step.line)
 

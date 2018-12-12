@@ -1,112 +1,99 @@
 <template>
     <div style="margin: auto">
-        <div v-if="thisType === vartypes.DICT">
-            <div :style="{ 'background-color': color() }"
-                class="variable-dict">
-                <dict v-for="(val, idx) in decode(variable, thisType)" :key="idx"
-                    :depth="1"
-                    :dkey="val[0]"
-                    :variable="val[1]"
-                    class="md-elevation-4">
-                </dict>
-            </div>
-        </div>
-        <div v-else-if="thisType === vartypes.LIST">
-            <div v-if="variable.length > 1"
-                :style="{ 'background-color': color() }"
-                class="variable-list">
-                <list v-for="(val, idx) in decode(variable, thisType)" :key="idx"
-                    :depth="1"
-                    :index="idx"
-                    :variable="val"
-                    class="variable-list-item md-elevation-4">
-                </list>
-            </div>
+        <dict v-if="variable.type === vartypes.DICT" 
+            :depth="depth"
+            :variable="variable.value"
+            class="variable-dict" 
+            :style="{ 'background-color': color(depth) }">
+        </dict>
+        <div v-else-if="variable.type === vartypes.LIST">
+            <list v-if="variable.value.length > 0"
+                :depth="depth"
+                :variable="variable.value"
+                class="variable-list variable-list-horizontal" 
+                :style="{ 'background-color': color(depth) }">
+            </list>
             <div class="variable-list-item md-elevation-4" v-else>
-                <div class="variable-list-item-value variable-values-current-list">Lista vacía</div>
+                <div class="variable-list-item-value list">Lista vacía</div>
             </div>
         </div>
-        <div v-else-if="thisType === vartypes.LIST_OF_LISTS">
-            <div v-if="variable.length > 0"
-                :style="{ 'background-color': color() }"
-                class="variable-list-vertical">
-                <list v-for="(val, idx) in decode(variable, thisType)" :key="idx"
-                    :depth="1"
-                    :index="idx"
-                    :variable="val"
-                    :vertical="true"
-                    class="variable-list-vertical-item md-elevation-4">
-                </list>
-            </div>
+        <div v-else-if="variable.type === vartypes.LIST_OF_LISTS">
+            <list v-if="variable.value.length > 0"
+                :depth="depth"
+                :variable="variable.value"
+                :vertical="true"
+                class="variable-list variable-list-vertical" 
+                :style="{ 'background-color': color(depth) }">
+            </list>
             <p class="text-center" v-else>Lista vacía</p>
         </div>
-        <div v-else-if="detailed && thisType === vartypes.MATRIX" class="variable-unique md-elevation-4">
+        <div v-else-if="detailed && variable.type === vartypes.MATRIX" class="variable-unique md-elevation-4">
             <div class="variable-unique-text variable-unique-text-input">
                 <span>Matriz</span>
                 <md-switch v-model="other">Ver como lista de listas</md-switch>
             </div>
             <div class="variable-unique-content">
-                <div class="variable-unique-value variable-values-current-list variable-list-vertical" v-if="other">
-                    <list v-for="(val, idx) in decode(variable, thisType)" :key="idx"
-                        :depth="1"
-                        :index="idx"
-                        :variable="val"
+                <div class="md-elevation-4 variable-unique-value list variable-list-vertical" v-if="other">
+                    <list :depth="depth"
+                        :variable="variable.value"
                         :vertical="true"
-                        class="variable-list-vertical-item md-elevation-4">
+                        class="variable-list variable-list-vertical" 
+                        :style="{ 'background-color': color(depth) }">
                     </list>
                 </div>
-                <div class="variable-unique-value variable-values-current-list" v-else>
-                    <matrix :variable="variable"></matrix>
+                <div class="md-elevation-4 variable-unique-value list" v-else>
+                    <matrix :variable="variable.value" :style="{ 'background-color': color(depth) }"></matrix>
                 </div>
             </div>
         </div>
-        <matrix v-else-if="thisType === vartypes.MATRIX" :variable="variable"></matrix>
-        <funct v-else-if="thisType === vartypes.FUNCTION" :variable="decode(variable, thisType)"></funct>
-        <div v-else-if="detailed && (thisType === vartypes.NUMBER || thisType === vartypes.FLOAT)" class="variable-unique md-elevation-4">
+        <matrix v-else-if="variable.type === vartypes.MATRIX" :variable="variable.value" :style="{ 'background-color': color(depth) }"></matrix>
+        <funct v-else-if="variable.type === vartypes.FUNCTION" :variable="variable.value"></funct>
+        <div v-else-if="detailed && (variable.type === vartypes.NUMBER || variable.type === vartypes.FLOAT)" class="variable-unique md-elevation-4">
             <div class="variable-unique-text variable-unique-text-input">
-                <span v-if="thisType === vartypes.NUMBER">Número entero [<b class="variable-unique-type">int</b>]</span>
+                <span v-if="variable.type === vartypes.NUMBER">Número entero [<b class="variable-unique-type">int</b>]</span>
                 <span v-else>Número de coma flotante [<b class="variable-unique-type">float</b>]</span>
-                <md-switch v-if="thisType === vartypes.FLOAT || variable > 999" v-model="other" >Ver con puntos y comas</md-switch>
+                <md-switch v-if="variable.alternative" v-model="other" >Ver con puntos y comas</md-switch>
             </div>
             <div class="variable-unique-content">
-                <div class="variable-unique-value variable-values-current-number" v-if="other">{{ decode(variable, thisType) }}</div>
-                <div class="variable-unique-value variable-values-current-number" v-else>{{ value(variable, thisType) }}</div>
+                <div class="md-elevation-4 variable-unique-value number" v-if="other">{{ variable.alternative }}</div>
+                <div class="md-elevation-4 variable-unique-value number" v-else>{{ variable.value }}</div>
             </div>
         </div>
-        <div v-else-if="detailed && thisType === vartypes.STRING" class="variable-unique md-elevation-4">
+        <div v-else-if="detailed && variable.type === vartypes.STRING" class="variable-unique md-elevation-4">
             <div class="variable-unique-text variable-unique-text-input">
                 <span>Cadena de caracteres [<b class="variable-unique-type">string</b>]</span>
                 <md-switch v-model="other">Ver como lista</md-switch>
             </div>
             <div class="variable-unique-content">
-                <div class="variable-unique-value variable-values-current-list variable-list" v-if="other">
-                    <list v-for="(char, idx) in variable" :key="idx"
-                        :depth="1"
-                        :index="idx"
-                        :variable="char"
-                        class="variable-list-item md-elevation-4">
-                    </list>
-                </div>
-                <div class="variable-unique-value variable-values-current-string" v-html="decode(variable, thisType)" v-else></div>
+                <list class="md-elevation-4 variable-unique-value list variable-list" v-if="other"
+                    :depth="1" :variable="variable.alternative"></list>
+                <div class="md-elevation-4 variable-unique-value string" v-html="variable.parsed" v-else></div>
             </div>
         </div>
-        <div v-else-if="detailed && thisType === vartypes.CHAR" class="variable-unique md-elevation-4">
+        <div v-else-if="detailed && variable.type === vartypes.CHAR" class="variable-unique md-elevation-4">
             <div class="variable-unique-text">
                 Caracter [<b class="variable-unique-type">char</b>]
             </div>
             <div class="variable-unique-content">
-                <div class="variable-unique-value variable-values-current-char">{{ variable }}</div>
+                <div class="md-elevation-4 variable-unique-value char char-parsed" v-if="variable.parsed">{{ variable.parsed }}</div>
+                <div class="md-elevation-4 variable-unique-value char" v-else>{{ variable.value }}</div>
+            </div>
+        </div>
+        <div v-else-if="detailed && variable.type === vartypes.BOOLEAN" class="variable-unique md-elevation-4">
+            <div class="variable-unique-text">
+                Lógico [<b class="variable-unique-type">bool</b>]
+            </div>
+            <div class="variable-unique-content">
+                <div class="md-elevation-4 variable-unique-value boolean" :class="variable.bool">{{ variable.value }}</div>
             </div>
         </div>
         <div v-else>
-            <span>{{ value(variable, thisType) }}</span>
+            <span>{{ variable.value }}</span>
         </div>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
 import VarTypes from '@/vartypes'
-import Methods from '@/components/trace/methods'
 import Dictionary from './types/Dictionary'
 import Func from './types/Function'
 import List from './types/List'
@@ -114,11 +101,10 @@ import Matrix from './types/Matrix'
 
 export default {
     name: 'var-data',
-    props: ['detailed', 'variable'],
+    props: ['depth', 'detailed', 'variable'],
     data: function() {
         return {
             other: false,
-            thisType: this.type(this.variable),
             vartypes: VarTypes,
         }
     },
@@ -128,16 +114,12 @@ export default {
         'matrix': Matrix,
         'funct': Func,
     },
-    methods: Methods,
-    watch: {
-        variable: {
-            handler() {
-                this.thisType = this.type(this.variable)
-            },
-            deep: true,
-            inmediate: true,
-        }
-    },
+    methods: {
+        color: function(depth = 0) {
+            const base = 60 + depth * 20
+            return 'rgb(' + base + ', ' + base + ', ' + (base + 10) + ')'
+        },
+    }
 }
 </script>
 

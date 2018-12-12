@@ -1,6 +1,6 @@
 <template>
     <md-app md-mode="fixed">
-        <md-app-toolbar class="md-primary">
+        <md-app-toolbar class="md-primary" md-theme="default-darker">
             <md-button class="md-icon-button" @click="showMenu = !showMenu">
                 <md-icon>menu</md-icon>
             </md-button>
@@ -83,39 +83,49 @@
                     </md-content>
                     <span class="md-list-item-text">Entrada de usuario requerida en la consola</span>
                 </md-list-item>
+                <md-list-item>
+                    <md-content class="symbol symbol-assign">
+                        <md-icon>edit</md-icon>
+                    </md-content>
+                    <span class="md-list-item-text">Modificación de variable</span>
+                </md-list-item>
             </md-list>
             <md-divider></md-divider>
             <md-list>
                 <md-list-item>
-                    <md-content class="symbol symbol-bold variable-values-current-number">N</md-content>
+                    <md-content class="symbol symbol-bold number">N</md-content>
                     <span class="md-list-item-text">Número</span>
                 </md-list-item>
                 <md-list-item>
-                    <md-content class="symbol symbol-bold variable-values-current-string">S</md-content>
+                    <md-content class="symbol symbol-bold string">S</md-content>
                     <span class="md-list-item-text">String o caracter</span>
                 </md-list-item>
                 <md-list-item>
-                    <md-content class="symbol symbol-bold variable-values-current-list">[ ]</md-content>
+                    <md-content class="symbol symbol-bold boolean">B</md-content>
+                    <span class="md-list-item-text">Lógico (boolean)</span>
+                </md-list-item>
+                <md-list-item>
+                    <md-content class="symbol symbol-bold list">[ ]</md-content>
                     <span class="md-list-item-text">Lista</span>
                 </md-list-item>
                 <md-list-item>
-                    <md-content class="symbol variable-values-current-listoflists">
+                    <md-content class="symbol listoflists">
                         <md-icon>format_list_bulleted</md-icon>
                     </md-content>
                     <span class="md-list-item-text">Lista de listas</span>
                 </md-list-item>
                 <md-list-item>
-                    <md-content class="symbol variable-values-current-matrix">
+                    <md-content class="symbol matrix">
                         <md-icon>apps</md-icon>
                     </md-content>
                     <span class="md-list-item-text">Matriz</span>
                 </md-list-item>
                 <md-list-item>
-                    <md-content class="symbol symbol-bold variable-values-current-dict">{ }</md-content>
+                    <md-content class="symbol symbol-bold dict">{ }</md-content>
                     <span class="md-list-item-text">Diccionario</span>
                 </md-list-item>
                 <md-list-item>
-                    <md-content class="symbol symbol-bold variable-values-current-function">fx()</md-content>
+                    <md-content class="symbol symbol-bold function">fx()</md-content>
                     <span class="md-list-item-text">Función</span>
                 </md-list-item>
             </md-list>
@@ -243,7 +253,6 @@
         </md-app-content>
     </md-app>
 </template>
-<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
 import Events from '@/events'
 import Stepper from '@/components/Stepper'

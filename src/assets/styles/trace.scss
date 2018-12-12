@@ -1,14 +1,15 @@
-@import "./base.scss";
-
+$buttonWidth: 32px;
 .trace {
     background-color: $darkGrey !important;
     margin-top: $large !important;
+    @include height-transition(ease-out);
 
     .md-tabs {
         height: 100% !important;
 
         &-navigation {
             min-height: $headerHeight !important;
+            @include calc(width, "100% - (#{$buttonWidth} * 2 + 16px)");
 
             button {
                 height: inherit !important;
@@ -18,8 +19,47 @@
 
         &-content {
             background-color: transparent !important;
-            overflow-y: auto !important;
-            height: auto !important;
+            height: 100% !important;
+
+            .md-tabs-container {
+                height: 100% !important;
+            }
+
+            .md-tab {
+                height: 100% !important;
+                padding: 0 !important;
+            }
         }
+    }
+
+    &-scope {
+        height: 100% !important;
+
+        &-variables {
+            height: fit-content;
+            overflow-y: auto;
+            padding: $small $small 0 $small;
+        }
+    }
+        
+    &-button {
+        position: absolute !important;
+        margin: 4px !important;
+        min-width: 0 !important;
+        width: $buttonWidth !important;
+        top: 0;
+        
+        &-alternate {
+            right: $buttonWidth + 4px;
+        }
+            
+        &-sizing {
+            right: 0;
+        }
+    }
+
+    &-minimized {
+        height: $headerHeight + $xsmall !important;
+        @include height-transition(ease-in);
     }
 }

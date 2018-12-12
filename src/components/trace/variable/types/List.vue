@@ -1,20 +1,23 @@
 <template>
     <div>
-        <div :class="'variable-list-' + (vertical ? 'vertical-' : '') + 'item-index'">
-            <span>{{ index }}</span>
-        </div>
-        <div :class="['variable-list-' + (vertical ? 'vertical-' : '') + 'item-value', 'variable-values-current-' + type(variable)]">
-            <var-data :variable="variable"></var-data>
+        <div v-for="(item, idx) in variable" :key="idx" class="md-elevation-4" :class="className + 'item'">
+            <div :class="className + 'item-index'">
+                <span>{{ idx }}</span>
+            </div>
+            <div :class="[className + 'item-value', item.type]">
+                <var-data :depth="depth + 1" :variable="item"></var-data>
+            </div>
         </div>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
-import Methods from '@/components/trace/methods'
-
 export default {
     name: 'list',
-    props: ['depth', 'index', 'variable', 'vertical'],
-    methods: Methods
+    props: ['depth', 'variable', 'vertical'],
+    computed: {
+        className: function() {
+            return 'variable-list-' + (this.vertical ? 'vertical-' : 'horizontal-')
+        }
+    }
 }
 </script>

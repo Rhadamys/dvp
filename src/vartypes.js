@@ -8,6 +8,7 @@ export default {
     LIST_OF_LISTS: 'listoflists',
     MATRIX: 'matrix',
     NUMBER: 'number',
+    OBJECT: 'object',
     RETURN: '__return__',
     STRING: 'string',
 }

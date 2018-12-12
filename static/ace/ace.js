@@ -15719,6 +15719,8 @@ var Gutter = function(parentEl) {
                 rowInfo.className = " gutter_current_line";
             else if (type == "next_line")
                 rowInfo.className = " gutter_next_line";
+            else if (type == "assignment_line")
+                rowInfo.className = " gutter_assignment_line";
         }
     };
 

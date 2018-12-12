@@ -16,8 +16,8 @@
                 <span>{{ item.part }}</span>
                 <md-tooltip md-direction="top">{{ item.part }}</md-tooltip>
             </div>
-            <div class="conditional-variable-value" :class="['variable-values-current-' + type(item.value), { 'conditional-variable-value-full': item.part === '' }]">
-                <var-data :variable="item.value"></var-data>
+            <div class="conditional-variable-value" :class="[item.value.type, item.value.bool, { 'conditional-variable-value-full': item.part === '' }]">
+                <var-data :depth="0" :variable="item.value"></var-data>
             </div>
         </div>
         <div class="expression-item md-elevation-4"
@@ -27,10 +27,7 @@
         </div>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/conditional.scss"></style>
 <script>
-import Methods from '@/components/trace/methods'
-
 export default {
     props: ['item'],
     data: function() {
@@ -42,6 +39,5 @@ export default {
             }
         }
     },
-    methods: Methods,
 }
 </script>

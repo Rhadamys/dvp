@@ -1,84 +1,53 @@
 <template>
-    <div>
-        <md-content class="variable">
-            <div class="variable-name">
-                {{ varname }}
-                <md-tooltip md-direction="top">{{ varname }}</md-tooltip>
-            </div>
-            <div class="variable-values">
-                <div class="variable-values-box">
-                    <div class="variable-values-box-step">
-                        <span>Actual</span>
-                    </div>
-                    <div class="variable-values-box-value variable-values-current selectable"
-                        :class="'variable-values-current-' + type(current)"
-                        @click="show()"
-                        v-html="value(current)">
-                    </div>
+    <md-content class="variable">
+        <div class="variable-name">
+            {{ varname }}
+            <md-tooltip md-direction="top">{{ varname }}</md-tooltip>
+        </div>
+        <div class="variable-values">
+            <div class="variable-values-box"
+                @mouseover="$emit('highlight', current.line)"
+                @mouseout="$emit('reset')">
+                <div class="variable-values-box-step selectable" @click="$emit('step', current.step)">
+                    <span>{{ current.step }}</span>
                 </div>
-                <div v-if="prevals" class="variable-values">
-                    <md-button class="md-icon-button md-raised md-dense"
-                        v-if="prevals.length > showMax && prevalsRange.start > 0"
-                        @click="prevalsRange.start -= 1">
-                        <md-icon>navigate_before</md-icon>
-                        <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.recent }} más recientes...</md-tooltip>
-                    </md-button>
-                    <div v-for="(prev, index) in subprevals" :key="index" class="variable-values-box">
-                        <div class="variable-values-box-step selectable">
-                            <span @click="setStep(prev.step - 1)">{{ prev.step }}</span>
-                        </div>
-                        <div class="variable-values-box-value variable-values-prev selectable"
-                            :class="'variable-values-prev-' + type(prev.value)"
-                            @click="show(index + prevalsRange.start)"
-                            v-html="value(prev.value)">
-                        </div>
-                    </div>
-                    <md-button class="md-icon-button md-raised md-dense"
-                        v-if="prevals.length > showMax && prevalsRange.start < prevals.length - showMax"
-                        @click="prevalsRange.start += 1">
-                        <md-icon>navigate_next</md-icon>
-                        <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.prev }} más anteriores...</md-tooltip>
-                    </md-button>
+                <div class="variable-values-box-value variable-values-current selectable"
+                    :class="current.bool" :style="'background-color: ' + current.color"
+                    @click="$emit('show', { varname, index: 0 })"
+                    v-html="current.icon || current.value">
                 </div>
             </div>
-        </md-content>
-        <md-dialog :md-active.sync="showDialog" class="variable-dialog">
-            <md-dialog-title>
-                <div>
-                    <span class="md-title">{{ varname }}</span>
-                    <md-chip class="md-step">
-                        {{ index === 0 ? 'Valor actual' : 'Valor hasta el paso ' + variable.step }}
-                    </md-chip>
+            <div v-if="prevals" class="variable-values">
+                <md-button class="md-icon-button md-raised md-dense"
+                    v-if="prevals.length > showMax && prevalsRange.start > 0"
+                    @click="prevalsRange.start -= 1">
+                    <md-icon>navigate_before</md-icon>
+                    <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.recent }} más recientes...</md-tooltip>
+                </md-button>
+                <div v-for="(prev, index) in subprevals" :key="index" class="variable-values-box"
+                    @mouseover="$emit('highlight', prev.line)"
+                    @mouseout="$emit('reset')">
+                    <div class="variable-values-box-step selectable" @click="$emit('step', prev.step)">
+                        <span>{{ prev.step }}</span>
+                    </div>
+                    <div class="variable-values-box-value variable-values-prev selectable"
+                        :class="prev.bool" :style="'background-color: ' + prev.color"
+                        @click="$emit('show', { varname, index: index + prevalsRange.start + 1 })"
+                        v-html="prev.icon || prev.value">
+                    </div>
                 </div>
-                <div class="md-stepping" v-if="prevals">
-                    <md-button class="md-icon-button md-dense"
-                        @click="index += 1"
-                        :disabled="index === prevals.length">
-                        <md-icon>navigate_before</md-icon>
-                        <md-tooltip md-direction="top">Anterior</md-tooltip>
-                    </md-button>
-                    <md-button class="md-icon-button md-dense"
-                        @click="index -= 1"
-                        :disabled="index === 0">
-                        <md-icon>navigate_next</md-icon>
-                        <md-tooltip md-direction="top">Siguiente</md-tooltip>
-                    </md-button>
-                </div>
-            </md-dialog-title>
-            <md-dialog-content>
-                <var-data :detailed="true" :variable="variable.value"></var-data>
-            </md-dialog-content>
-            <md-dialog-actions>
-                <md-button class="md-primary" @click="showDialog = false">Cerrar</md-button>
-            </md-dialog-actions>
-        </md-dialog>
-    </div>
+                <md-button class="md-icon-button md-raised md-dense"
+                    v-if="prevals.length > showMax && prevalsRange.start < prevals.length - showMax"
+                    @click="prevalsRange.start += 1">
+                    <md-icon>navigate_next</md-icon>
+                    <md-tooltip md-direction="left" v-if="!isMobile()">{{ prevalsRange.prev }} más anteriores...</md-tooltip>
+                </md-button>
+            </div>
+        </div>
+    </md-content>
 </template>
-<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
 import Events from '@/events'
-import VarTypes from '@/vartypes'
-import Methods from '@/components/trace/methods'
 
 export default {
     props: ['current', 'prevals', 'varname'],
@@ -95,27 +64,11 @@ export default {
                 step: undefined,
                 value: undefined,
             },
-            vartypes: VarTypes,
         }
     },
     methods: {
-        ...Methods,
-        show: function(index) {
-            this.index = index === undefined ? 0 : index + 1
-            this.setVar()
-            this.showDialog = true
-        },
-        setStep: function(step) {
-            this.$root.$emit(Events.SET_STEP, step)
-        },
-        setVar: function() {
-            if(this.prevals === undefined || this.index === 0) {
-                this.variable.value = this.current
-            } else {
-                const selected =  this.prevals[this.index - 1]
-                this.variable.step = selected.step
-                this.variable.value = selected.value || selected
-            }
+        show: function(index = undefined) {
+            this.$parent.$emit('SHOW_VAR', { index, varname: this.varname })
         },
     },
     computed: {
@@ -134,14 +87,6 @@ export default {
             this.prevalsRange.prev = len - end
             return this.prevals.slice(this.prevalsRange.start, end)
         }
-    },
-    watch: {
-        index: {
-            handler() {
-                this.setVar()
-            },
-            inmediate: true,
-        },
     }
 }
 </script>

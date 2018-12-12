@@ -8,8 +8,6 @@
         <div id="ace-editor" style="height: 100%"></div>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/editor.scss"></style>
-<style lang="scss" src="@/assets/styles/ace.scss"></style>
 <script>
 import Const from '@/const'
 import Events from '@/events'
@@ -40,6 +38,7 @@ export default {
     created: function() {
         this.$root.$on(Events.CLEAR_HIGHLIGHT, this.reset)
         this.$root.$on(Events.HIGHLIGHT, this.highlight)
+        this.$root.$on(Events.REMOVE_LAST_HIGHLIGHT, this.removeLastHighlight)
         this.$root.$on(Events.RESIZE_EDITOR, () => this.$nextTick(() => { this.ace.editor.resize(true) }))
         this.$root.$on(Events.SCROLL_EDITOR, line => this.ace.editor.scrollToLine(line, true, true))
         this.$root.$on(Events.SET_SCRIPT, script => this.ace.editor.session.setValue(script))
@@ -86,6 +85,12 @@ export default {
             const marker_id = this.ace.editor.session.addMarker(new Range(row, 0, row, 1), type, 'fullLine')
             this.ace.markers.push(marker_id)
         },
+        removeLastHighlight: function() {
+            this.ace.editor.session.removeMarker(this.ace.markers.pop())
+            const annotations = this.ace.editor.session.getAnnotations()
+            annotations.pop()
+            this.ace.editor.session.setAnnotations(annotations)
+        },
         /**
          * Restablece las marcas del editor.
          */
@@ -95,9 +100,7 @@ export default {
             clearInterval(this.remaining.interval)
 
             this.ace.editor.getSession().setAnnotations([])
-            this.ace.markers.map(marker => {
-                this.ace.editor.session.removeMarker(marker)
-            })
+            this.ace.markers.map(marker => { this.ace.editor.session.removeMarker(marker) })
             this.ace.markers = []
             this.requested = false
         },

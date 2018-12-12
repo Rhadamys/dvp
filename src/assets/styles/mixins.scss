@@ -1,0 +1,72 @@
+// Breakpoints
+@mixin xsmall {
+    @media (max-width: 599px) {
+        @content;
+    }
+}
+@mixin small {
+    @media (max-width: 959px) {
+        @content;
+    }
+}
+@mixin medium {
+    @media (max-width: 1259px) {
+        @content;
+    }
+}
+@mixin large {
+    @media (max-width: 1919px) {
+        @content;
+    }
+}
+@mixin xlarge {
+    @media (min-width: 1920) {
+        @content;
+    }
+}
+
+// Animations
+@mixin keyframes($name) {
+    @-webkit-keyframes #{$name} {
+        @content; 
+    }
+    @-moz-keyframes #{$name} {
+        @content;
+    }
+    @-o-keyframes #{$name} {
+        @content;
+    }
+    @keyframes #{$name} {
+        @content;
+    } 
+}
+@mixin animate($name, $duration, $iteration) {
+    -webkit-animation: $name $duration $iteration;
+       -moz-animation: $name $duration $iteration;
+         -o-animation: $name $duration $iteration;
+            animation: $name $duration $iteration;
+}
+
+// Transitions
+@mixin background-color-transition {
+    -webkit-transition: background-color 200ms linear;
+    -ms-transition: background-color 200ms linear;
+    transition: background-color 200ms linear;
+}
+@mixin height-transition($mode) {
+    -webkit-transition: height 200ms $mode;
+    -ms-transition: height 200ms $mode;
+    transition: height 200ms $mode;
+}
+@mixin height-transition($mode) {
+    -webkit-transition: height 200ms $mode;
+    -ms-transition: height 200ms $mode;
+    transition: height 200ms $mode;
+}
+
+// Calc
+@mixin calc($property, $expression) {
+    #{$property}: -webkit-calc(#{$expression});
+    #{$property}: -moz-calc(#{$expression});
+    #{$property}: calc(#{$expression});
+}

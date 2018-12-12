@@ -1,21 +1,18 @@
 <template>
-    <div class="variable-dict-content">
-        <div class="variable-dict-key">
-            <span>{{ dkey }}:</span>
-        </div>
-        <div class="variable-dict-value" 
-            :class="'variable-values-current-' + type(variable)">
-            <var-data :variable="variable"></var-data>
+    <div>
+        <div class="variable-dict-content md-elevation-4" v-for="(value, key) in variable" :key="key">
+            <div class="variable-dict-key">
+                <span>{{ key }}:</span>
+            </div>
+            <div class="variable-dict-value" :class="value.type">
+                <var-data :depth="depth + 1" :variable="value"></var-data>
+            </div>
         </div>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
-import Methods from '@/components/trace/methods'
-
 export default {
     name: 'dict',
-    props: ['depth', 'dkey', 'variable'],
-    methods: Methods,
+    props: ['depth', 'variable'],
 }
 </script>

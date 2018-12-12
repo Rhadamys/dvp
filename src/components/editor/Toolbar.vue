@@ -75,8 +75,6 @@
         </md-dialog>
     </md-card-actions>
 </template>
-<style lang="scss" src="@/assets/styles/editor.scss"></style>
-<style lang="scss" src="@/assets/styles/trace.scss"></style>
 <script>
 import Events from '@/events'
 import Stepper from '@/components/Stepper'

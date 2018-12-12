@@ -1,5 +1,5 @@
 <template>
-    <div class="expression expression-container" :style="{ 'background-color': color(depth, true) }">
+    <div class="expression expression-container" :style="{ 'background-color': color(depth) }">
         <div v-for="(item, index) in parsed" :key="index">
             <div v-if="Array.isArray(item)" class="expression-container">
                 <div class="expression-par">(</div>
@@ -22,9 +22,7 @@
         </div>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/conditional.scss"></style>
 <script>
-import Methods from '@/components/trace/methods'
 import Subexpression from './Subexpression'
 
 export default {
@@ -33,8 +31,11 @@ export default {
     components: {
         'subexpression': Subexpression
     },
-    methods: { 
-        ...Methods, 
+    methods: {
+        color: function(depth = 0) {
+            const base = 255 - depth * 30
+            return 'rgb(' + base + ', ' + base + ', ' + (base + 10) + ')'
+        },
         currentClass: function(index) {
             const is_current = this.currentItem(index)
             const is_bool = typeof this.result === 'boolean'

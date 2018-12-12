@@ -10,8 +10,7 @@ Vue.use(VueOffline)
 import VueMaterial from 'vue-material'
 import 'vue-material/dist/vue-material.min.css'
 import 'vue-material/dist/theme/default-dark.css'
-require('@/assets/styles/base.scss')
-require('@/assets/styles/app.scss')
+require('@/assets/styles/main.scss')
 
 Vue.use(VueMaterial)
 

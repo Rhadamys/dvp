@@ -557,6 +557,8 @@ class PGLogger(bdb.Bdb):
 
         self.registered_loops = dict(stack=[]) # Loops registrados
 
+        self.null_scope = { 'ordered_varnames': [] }
+
     def register_loop(self, line):
         """
         Registra un nuevo loop. De esta forma se le puede hacer seguimiento
@@ -600,7 +602,7 @@ class PGLogger(bdb.Bdb):
             any: Devuelve el objeto del loop si éste ya terminó, porque no se agrega
                 al stack de salida en la traza.
         """
-        loop = self.registered_loops[self.lineno]
+        loop = copy.deepcopy(self.registered_loops[self.lineno])
         loop_type = loop['type']
         loop['current'] += 1
 
@@ -619,7 +621,7 @@ class PGLogger(bdb.Bdb):
                 del self.registered_loops[self.lineno]
                 self.registered_loops['stack'].pop()
             loop['conditional'] = conditional
-        return copy.deepcopy(loop)
+        return loop
 
     def trace_conditional(self, line):
         start = end = self.lineno
@@ -656,7 +658,7 @@ class PGLogger(bdb.Bdb):
             if index == len_line:
                 line = line[1 : -1]
         
-        vars_list = self.current_stack['global']['ordered_varnames']
+        vars_list = copy.deepcopy(self.current_stack['global']['ordered_varnames'])
         current_scope = self.current_stack['ordered_scopes'][-1]
         if not current_scope == 'global':
             current = self.current_stack[current_scope]
@@ -669,10 +671,7 @@ class PGLogger(bdb.Bdb):
         def encode_part(part):
             v_type = type(part)
             ret = dict()
-            if v_type == bool:
-                v_type = part
-                part = str(part)
-            elif v_type == str:
+            if v_type == str:
                 if '(' in part and not part.startswith('('):
                     v_type = 'function'
                     n_part = part.replace('(', ',').strip(')').strip(' ').split(',')
@@ -958,6 +957,8 @@ class PGLogger(bdb.Bdb):
         """
         for varname in current['ordered_varnames']:
             if not varname in prev['ordered_varnames']:
+                value = current['encoded_vars'][varname]
+                current['encoded_vars'][varname] = dict(line=self.prev_lineno, step=len(self.trace), value=value)
                 continue
                 
             has_prevals = varname in prev['prev_encoded_vars']
@@ -966,12 +967,14 @@ class PGLogger(bdb.Bdb):
 
             prev_value = prev['encoded_vars'][varname]
             curr_value = current['encoded_vars'][varname]
-            if not curr_value == prev_value:
-                prev_record = dict(step=len(self.trace), value=prev_value)
+            if curr_value == prev_value['value']:
+                current['encoded_vars'][varname] = prev_value
+            else:
+                current['encoded_vars'][varname] = dict(line=self.prev_lineno, step=len(self.trace), value=curr_value)
                 if has_prevals:
-                    current['prev_encoded_vars'][varname].insert(0, prev_record)
+                    current['prev_encoded_vars'][varname].insert(0, prev_value)
                 else:
-                    current['prev_encoded_vars'][varname] = [prev_record]
+                    current['prev_encoded_vars'][varname] = [prev_value]
         return current
 
     def should_hide_var(self, var):
@@ -1280,8 +1283,7 @@ class PGLogger(bdb.Bdb):
 
         # each element is a pair of (function name, ENCODED locals dict)
         encoded_stack_locals = []
-        self.user_locals = dict()
-
+        self.user_locals = {}
         # returns a dict with keys: function name, frame id, id of parent frame, encoded_vars dict
         def create_encoded_stack_entry(cur_frame):
             #print >> sys.stderr, '- create_encoded_stack_entry', cur_frame, self.closures, self.lambda_closures
@@ -1317,7 +1319,7 @@ class PGLogger(bdb.Bdb):
             encoded_vars = {}
 
             user_locals = get_user_locals(cur_frame)
-            self.user_locals = copy.deepcopy(user_locals)
+            self.user_locals.update(user_locals)
             for (k, v) in user_locals.items():
                 is_in_parent_frame = False
 
@@ -1514,8 +1516,7 @@ class PGLogger(bdb.Bdb):
         # encode in a JSON-friendly format now, in order to prevent ill
         # effects of aliasing later down the line ...
         encoded_globals = {}
-        cur_globals_dict = get_user_globals(tos[0], at_global_scope=(self.curindex <= 1))
-        self.user_globals = copy.deepcopy(cur_globals_dict)
+        self.user_globals = cur_globals_dict = get_user_globals(tos[0], at_global_scope=(self.curindex <= 1))
         for (k, v) in cur_globals_dict.items():
             if self.should_hide_var(k):
                 continue
@@ -1609,7 +1610,6 @@ class PGLogger(bdb.Bdb):
                 except:
                     pass # don't encode the value if there's been an error
 
-            
         # Agrega información de en qué pasó se imprimió y si fue dentro de un ciclo
         stdout = self.get_user_stdout()
         if self.prev_lineno > 0 and self.executed_script_lines[self.prev_lineno - 1].strip().startswith('print'):
@@ -1623,7 +1623,7 @@ class PGLogger(bdb.Bdb):
                 current = self.registered_loops['stack'][-1]
                 curr_loop = self.registered_loops[current]
                 loop_type = curr_loop['type']
-                stdout += ''' | </i><i style="color: #{0}">Ciclo: {1} </i><i style="color:gray">({2} línea {3})'''.format('FFCA28' if loop_type == 'for' else '4CAF50', curr_loop['current'] + 1, loop_type, curr_loop['line'])
+                stdout += ' | </i><i style="color: #{0}">Ciclo: {1} </i><i style="color:gray">({2} línea {3})'.format('FFCA28' if loop_type == 'for' else '4CAF50', curr_loop['current'] + 1, loop_type, curr_loop['line'])
             stdout += '</i>\n'
 
         global_scope = dict(encoded_vars=encoded_globals,
@@ -1648,27 +1648,34 @@ class PGLogger(bdb.Bdb):
                 if current_scope_name in prev_stack_format:
                     last_scope_name = prev_stack_format['ordered_scopes'][-1]
                     if not current_scope_name == last_scope_name:
+                        prev_scope = self.trace[-1]['stack_to_render'][last_scope_name]
                         del prev_stack_format[last_scope_name]
                         prev_stack_format['ordered_scopes'] = prev_stack_format['ordered_scopes'][:-1]
 
                     scope = prev_stack_format[current_scope_name]
                     last_hash = scope['ordered_hashes'][-1]
                     if not current_hash in scope['ordered_hashes']:
+                        current_scope = self.check_variable_value_changes(self.null_scope, current_scope)
+                        current_scope['start'] = len(self.trace)
                         scope[current_hash] = current_scope
                         scope['ordered_hashes'].append(current_hash)
                         if len(scope) > MAX_RECURSIVE_CALLS:
                             recursion_overflow = True
                     elif current_hash == last_hash:
+                        current_scope['start'] = scope[last_hash]['start']
+                        current_scope = self.check_variable_value_changes(scope[last_hash], current_scope)
                         if '__return__' in current_scope['ordered_varnames']:
                             current_scope['returned'] = current_scope['encoded_vars']['__return__']
                             del current_scope['encoded_vars']['__return__']
-                            current_scope['ordered_varnames'].pop()
-                        scope[last_hash] = self.check_variable_value_changes(scope[last_hash], current_scope)
+                            current_scope['ordered_varnames'].remove('__return__')
+                        scope[last_hash] = current_scope
                     else:
                         del scope[last_hash]
                         scope['ordered_hashes'].pop()
                         scope[current_hash] = self.check_variable_value_changes(scope[current_hash], current_scope)
                 else:
+                    current_scope = self.check_variable_value_changes(self.null_scope, current_scope)
+                    current_scope['start'] = len(self.trace)
                     scope = { current_hash: current_scope, 'ordered_hashes': [current_hash] }
                     prev_stack_format['ordered_scopes'] = prev_stack_format['ordered_scopes'] + [current_scope_name]
 
@@ -2007,8 +2014,21 @@ class PGLogger(bdb.Bdb):
                 if hasattr(exc_val, 'offset'):
                     trace_entry['offset'] = exc_val.offset
 
-                trace_entry['exception_msg'] = type(exc_val).__name__ + ": " +  str(exc_val)
-                self.trace.append(trace_entry)
+                trace_entry['exception_msg'] = exc_msg = type(exc_val).__name__ + ": " +  str(exc_val)
+
+                # SUPER SUBTLE! if ANY exception has already been recorded by
+                # the program, then DON'T record it again as an uncaught_exception.
+                # This looks kinda weird since the exact exception message doesn't
+                # need to match up, but in practice, there should be at most only
+                # ONE exception per trace.
+                already_caught = False
+                for e in reversed(self.trace):
+                    if e['event'] == 'exception':
+                        already_caught = e['exception_msg'] == exc_msg
+                        break
+
+                if not already_caught:
+                    self.trace.append(trace_entry)
 
             raise bdb.BdbQuit # need to forceably STOP execution
 

@@ -32,11 +32,8 @@
         </div>
     </md-card>
 </template>
-<style lang="scss" src="@/assets/styles/conditional.scss"></style>
-<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
 import Events from '@/events'
-import Methods from '@/components/trace/methods'
 import Expression from './Expression'
 
 export default {
@@ -57,7 +54,6 @@ export default {
             this.$root.$emit(Events.RESIZE_EDITOR)
         })
     },
-    methods: Methods,
     computed: {
         step: function() {
             this.$nextTick(() => {

@@ -1,5 +1,3 @@
-@import "./base.scss";
-
 @include keyframes(current-false) {
     0% { background-color: md-get-palette-color(yellow, 300); }
     50% { background-color:md-get-palette-color(deeporange, 300); }
@@ -197,9 +195,6 @@
         margin-right: $xsmall;
         width: max-content;
 
-        &-false {
-            background-color: md-get-palette-color(deeporange, 400) !important;
-        }
         &-logical {
             color: md-get-palette-color(purple, 200) !important;
         }
@@ -211,9 +206,6 @@
         }
         &-string {
             color: md-get-palette-color(green, 400) !important;
-        }
-        &-true {
-            background-color: md-get-palette-color(lightgreen, 400) !important;
         }
     }
 

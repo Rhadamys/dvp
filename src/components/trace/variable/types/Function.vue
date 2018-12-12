@@ -24,13 +24,9 @@
         <div class="variable-function-raw">)</div>
     </div>
 </template>
-<style lang="scss" src="@/assets/styles/variable.scss"></style>
 <script>
-import Methods from '@/components/trace/methods'
-
 export default {
     props: ['variable'],
-    methods: Methods,
 }
 </script>
 

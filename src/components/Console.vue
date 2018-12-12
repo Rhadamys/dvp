@@ -1,10 +1,18 @@
 <template>
-    <md-card class="io">
+    <md-card class="io" :class="{ 'io-minimized': hide && !expanded }">
         <md-card-actions md-alignment="space-between">
             <span class="md-title">Consola</span>
             <md-switch v-model="history.active" value="0" @change="scrollDown" :disabled="history.cached.length === 0">Historial</md-switch>
+            <md-button class="md-dense console-resize" @click="$emit('resize')">
+                <md-icon v-if="expanded">keyboard_arrow_up</md-icon>
+                <md-icon v-else-if="hide">remove</md-icon>
+                <md-icon v-else>keyboard_arrow_down</md-icon>
+                <md-tooltip v-if="!isMobile()" md-direction="left">
+                    {{ expanded ? messages.minimize : hide ? messages.neutral : messages.maximize }}
+                </md-tooltip>
+            </md-button>
         </md-card-actions>
-        <md-card-content id="output" class="console">
+        <md-card-content id="output" class="console" v-show="!hide || expanded">
             <div class="console-item" v-html="history.cached" v-if="history.active"></div>
             <div class="console-item" v-html="history.current" v-else></div>
             <div class="console-item console-prompt" v-show="input.request && !history.active">
@@ -28,11 +36,12 @@
         </md-card-content>
     </md-card>
 </template>
-<style lang="scss" src="@/assets/styles/console.scss"></style>
 <script>
+import Const from '@/const'
 import Events from '@/events'
 
 export default {
+    props: ['hide', 'expanded'],
     data: function() {
         return {
             history: {
@@ -46,7 +55,8 @@ export default {
                 element: undefined,
                 enter: true,
                 request: undefined,
-            }
+            },
+            messages: Const.SIZING_MESSAGES,
         }
     },
     created: function() {
