@@ -61,7 +61,7 @@
         </div>
         <div v-else-if="detailed && variable.type === vartypes.STRING" class="variable-unique md-elevation-4">
             <div class="variable-unique-text variable-unique-text-input">
-                <span>Cadena de caracteres [<b class="variable-unique-type">string</b>]</span>
+                <span>Cadena de caracteres [<b class="variable-unique-type">str</b>]</span>
                 <md-switch v-model="other">Ver como lista</md-switch>
             </div>
             <div class="variable-unique-content">

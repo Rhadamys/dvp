@@ -45,7 +45,8 @@
                         <md-list-item @click="showTutorial(1)">Editor de código</md-list-item>
                         <md-list-item @click="showTutorial(4)">Consola de E/S</md-list-item>
                         <md-list-item @click="showTutorial(6)">Panel de variables</md-list-item>
-                        <md-list-item @click="showTutorial(8)">Expresiones condicionales</md-list-item>
+                        <md-list-item @click="showTutorial(8)">Línea de tiempo</md-list-item>
+                        <md-list-item @click="showTutorial(10)">Expresiones condicionales</md-list-item>
                     </md-list>
                 </md-list-item>
             </md-list>
@@ -164,10 +165,12 @@
                         <img src="@/assets/manual/mobile/consola-2.png" v-if="tutorial.step === 5">
                         <img src="@/assets/manual/mobile/variables-1.png" v-if="tutorial.step === 6">
                         <img src="@/assets/manual/mobile/variables-2.png" v-if="tutorial.step === 7">
-                        <img src="@/assets/manual/mobile/condicional-0.png" v-if="tutorial.step === 8">
-                        <img src="@/assets/manual/mobile/condicional-1.png" v-if="tutorial.step === 9">
-                        <img src="@/assets/manual/mobile/condicional-2.png" v-if="tutorial.step === 10">
-                        <img src="@/assets/manual/mobile/fin.png" v-if="tutorial.step === 11">
+                        <img src="@/assets/manual/mobile/linea-1.png" v-if="tutorial.step === 8">
+                        <img src="@/assets/manual/mobile/linea-2.png" v-if="tutorial.step === 9">
+                        <img src="@/assets/manual/mobile/condicional-0.png" v-if="tutorial.step === 10">
+                        <img src="@/assets/manual/mobile/condicional-1.png" v-if="tutorial.step === 11">
+                        <img src="@/assets/manual/mobile/condicional-2.png" v-if="tutorial.step === 12">
+                        <img src="@/assets/manual/mobile/fin.png" v-if="tutorial.step === 13">
                     </div>
                     <div class="tutorial-container-image" v-else>
                         <img src="@/assets/manual/desktop/editor-1.png" v-if="tutorial.step === 1">
@@ -177,13 +180,15 @@
                         <img src="@/assets/manual/desktop/consola-2.png" v-if="tutorial.step === 5">
                         <img src="@/assets/manual/desktop/variables-1.png" v-if="tutorial.step === 6">
                         <img src="@/assets/manual/desktop/variables-2.png" v-if="tutorial.step === 7">
-                        <img src="@/assets/manual/desktop/condicional-0.png" v-if="tutorial.step === 8">
-                        <img src="@/assets/manual/desktop/condicional-1.png" v-if="tutorial.step === 9">
-                        <img src="@/assets/manual/desktop/condicional-2.png" v-if="tutorial.step === 10">
-                        <img src="@/assets/manual/desktop/fin.png" v-if="tutorial.step === 11">
+                        <img src="@/assets/manual/desktop/linea-1.png" v-if="tutorial.step === 8">
+                        <img src="@/assets/manual/desktop/linea-2.png" v-if="tutorial.step === 9">
+                        <img src="@/assets/manual/desktop/condicional-0.png" v-if="tutorial.step === 10">
+                        <img src="@/assets/manual/desktop/condicional-1.png" v-if="tutorial.step === 11">
+                        <img src="@/assets/manual/desktop/condicional-2.png" v-if="tutorial.step === 12">
+                        <img src="@/assets/manual/desktop/fin.png" v-if="tutorial.step === 13">
                     </div>
                     <div class="tutorial-container-arrow selectable"
-                        v-show="tutorial.step < 11"
+                        v-show="tutorial.step < 13"
                         @click="tutorial.step += 1">
                         <md-icon>navigate_next</md-icon>
                     </div>
@@ -204,7 +209,7 @@
                 md-cancel-text="Cancelar"
                 md-confirm-text="Guardar"
                 @md-confirm="saveFile"/>
-            <md-dialog :md-active.sync="poll.show" @md-clicked-outside="resetTimer">
+            <md-dialog :md-active.sync="poll.show" @md-clicked-outside="resetTimer" class="list">
                 <md-dialog-title>¡Evalúa las nuevas funcionalidades!</md-dialog-title>
                 <md-dialog-content>
                     ¡Gracias por utilizar la aplicación! Por favor, contesta esta <u>breve encuesta</u> 
@@ -225,19 +230,13 @@
                 <md-dialog-title>¡Nuevas funcionalidades!</md-dialog-title>
                 <md-dialog-content>
                     <p>
-                        Utiliza el panel de <u>Expresiones condicionales</u> para observar en detalle la
-                        evaluación de una expresión condicional. Puedes encontrar mayor información en
-                        <u>Tutorial > Expresiones condicionales</u>.
+                        Ahora puedes ver en qué momento se modifican las variables y cómo varían en el tiempo
+                        gracias a la <u>Línea de Tiempo</u>. Para acceder a ella, presiona el botón (<md-icon>timeline</md-icon>) ubicado
+                        en la esquina superior derecha del panel de variables
                     </p>
-                    <img src="@/assets/news/condicional.png" class="md-dialog-image">
+                    <img src="@/assets/news/tiempo.png" class="md-dialog-image">
                     <p>
-                        Ahora puedes abrir y guardar archivos .py en tu dispositivo! Para esto, accede al
-                        menú lateral y verás las siguientes opciones:
-                    </p>
-                    <img src="@/assets/news/files.png" class="md-dialog-image">
-                    <p>
-                        Si es primera vez que utilizas la aplicación, te invito a ver el <u>Tutorial</u>
-                        para conocer más acerca de las características de la plataforma.
+                        Puedes aprender más sobre la línea de tiempo en el <a @click="showTutorial(8)">tutorial</a>.
                     </p>
                 </md-dialog-content>
                 <md-dialog-actions>
@@ -264,14 +263,14 @@ export default {
             fileName: '',
             news: {
                 show: false,
-                tag: 'condicional'
+                tag: 'linea-de-tiempo'
             },
             poll: {
                 lapse: 180000, // 3 minutos
                 later: false,
                 show: false,
                 timer: undefined,
-                url: 'https://goo.gl/forms/GHc25unyX2eEtuoj2',
+                url: 'https://goo.gl/forms/BrkkapL6ww0d0bhZ2',
             },
             showNameDialog: false,
             showMenu: false,
@@ -350,6 +349,7 @@ export default {
         showTutorial: function(step) {
             this.tutorial.step = step
             this.tutorial.show = true
+            this.news.show = false
             this.showMenu = false
         },
     },

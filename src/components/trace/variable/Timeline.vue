@@ -99,7 +99,8 @@ export default {
     },
     computed: {
         range: function() {
-            const start = this.scope.start || 0
+            const temp = this.scope.start || 0
+            const start = (this.step - temp) > 100 ? this.step - 100 : temp
             return [...Array(this.step + 1).keys()].slice(start).reverse()
         },
         table: function() {

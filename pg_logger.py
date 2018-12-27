@@ -602,9 +602,9 @@ class PGLogger(bdb.Bdb):
             any: Devuelve el objeto del loop si éste ya terminó, porque no se agrega
                 al stack de salida en la traza.
         """
-        loop = copy.deepcopy(self.registered_loops[self.lineno])
+        loop = self.registered_loops[self.lineno]
         loop_type = loop['type']
-        loop['current'] += 1
+        loop['current'] = loop['current'] + 1
 
         if loop_type == 'for':
             iterable = loop['iterable_str']
@@ -621,7 +621,7 @@ class PGLogger(bdb.Bdb):
                 del self.registered_loops[self.lineno]
                 self.registered_loops['stack'].pop()
             loop['conditional'] = conditional
-        return loop
+        return copy.deepcopy(loop)
 
     def trace_conditional(self, line):
         start = end = self.lineno
@@ -672,7 +672,7 @@ class PGLogger(bdb.Bdb):
             v_type = type(part)
             ret = dict()
             if v_type == str:
-                if '(' in part and not part.startswith('('):
+                if '(' in part and not part.startswith(('(', '"', "'")):
                     v_type = 'function'
                     n_part = part.replace('(', ',').strip(')').strip(' ').split(',')
                     part = n_part.pop(0)
@@ -680,8 +680,6 @@ class PGLogger(bdb.Bdb):
                     for p in n_part:
                         params.append(encode_part(p))
                     ret['params'] = params
-                elif part.startswith(("'", '"')):
-                    v_type = 'string'
                 elif part in OPERATORS:
                     v_type = 'operator'
                 elif part in LOGICALS:
@@ -703,6 +701,23 @@ class PGLogger(bdb.Bdb):
             return ret
 
         def decompose_expression(expression):
+            strings = []
+            temp = new_expression = ''
+            found = None
+            for i in range(len(expression)):
+                current = expression[i]
+                if found:
+                    temp = temp + current
+                    if current == found:
+                        strings.append(temp)
+                        found = None
+                        new_expression += '__STRING__' + str(len(strings)) + '__'
+                elif current in '\'"':
+                    found = temp = current
+                else:
+                    new_expression += current
+            expression = new_expression
+
             NOT_A_FUNCTION = LOGICALS + OPERATORS
             ADD_SPACE = NOT_A_FUNCTION + BRACKETS
             for exp in ADD_SPACE:
@@ -715,30 +730,32 @@ class PGLogger(bdb.Bdb):
             RE_REPLACE = ['<=', '>=', '==', '!=', '//', '**', 'not_in']
             for i in range(len(REBUILD)):
                 expression = re.sub(REBUILD[i], RE_REPLACE[i], expression)
+                
             expression = expression.split(' ')
             expression = list(filter(None, expression))
 
-            # Juntar llamados de funciones
+            # Juntar llamados de funciones y getters con []
             temp = []
             while expression:
                 part = expression.pop(0)
-                if expression:
-                    if not(part in NOT_A_FUNCTION or part[0].isdigit()) and expression[0] in '([':
-                        bracket = expression[0] == '('
-                        part += expression.pop(0)
-                        if bracket:
-                            while(not expression[0] == ')'): # Es ( y aún no encuentra )
-                                part += expression.pop(0) + ' '
-                            part = part.strip() + expression.pop(0)
-                        else:
-                            brackets = 1
-                            while(brackets > 0 or expression[0] in '[]'): # o hay un nuevo [
-                                current = expression.pop(0)
-                                if current == '[':
-                                    brackets = brackets + 1
-                                elif current == ']':
-                                    brackets = brackets - 1
-                                part += current
+                if part.startswith('__STRING__'):
+                    part = strings.pop(0)
+                elif expression and not(part in NOT_A_FUNCTION or part[0].isdigit()) and expression[0] in '([':
+                    bracket = expression[0] == '('
+                    part += expression.pop(0)
+                    if bracket:
+                        while(not expression[0] == ')'): # Es ( y aún no encuentra )
+                            part += expression.pop(0) + ' '
+                        part = part.strip() + expression.pop(0)
+                    else:
+                        brackets = 1
+                        while(brackets > 0 or expression[0] in '[]'): # o hay un nuevo [
+                            current = expression.pop(0)
+                            if current == '[':
+                                brackets = brackets + 1
+                            elif current == ']':
+                                brackets = brackets - 1
+                            part += current
                 if part == 'not_in':
                     part = 'not in'
                 temp.append(part)
@@ -885,6 +902,7 @@ class PGLogger(bdb.Bdb):
                         update_trace(copy.deepcopy(encoded), result, curr_tree)
                         exp.pop(index)
                         enc.pop(index)
+                        enc[index]['case'] = [1 if next_exp else 0]
                         exp[index] = result
                         enc[index] = encode_part(result)
                     elif curr_exp in BINARY_LOGICALS:
@@ -896,11 +914,13 @@ class PGLogger(bdb.Bdb):
                             del exp[index_base : index_to]
                             del enc[index_base : index_to]
                             result = curr_exp == 'or'
+                            enc[index]['case'] = [2, 3] if result else [0, 1]
                             exp[index + 1] = '?'
                             enc[index + 1] = dict(part='?', type='skipped', message='No se evaluó debido a que la primera expresión ya es {0}'.format('verdadera' if result else 'falsa'))
                             update_trace(copy.deepcopy(encoded), result, curr_tree)
                         else:
                             next_exp = eval_subexpression(exp, enc, index + 1)
+                            enc[index]['case'] = [3 if prev_result and next_exp else 2 if prev_result and not next_exp else 1 if not prev_result and next_exp else 0]
                             to_eval = '''{0} {1} {2}'''.format(prev_result, curr_exp, next_exp)
                             result = eval(to_eval, self.user_globals, self.user_locals)
                             update_trace(copy.deepcopy(encoded), result, curr_tree)

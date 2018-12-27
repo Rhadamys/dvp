@@ -84,11 +84,11 @@ export default {
          * Callback desde Editor para actualizar la salida en la consola.
          * @param stdout Salida en el paso actual de la ejecución.
          */
-        update: function(stdout) {
+        update: function({ first, stdout }) {
             this.history.current = this.stdout = stdout.replace(/\n/g, '<br>')
             this.scrollDown()
 
-            if(this.input.request) return
+            if(this.input.request || !first) return
             this.history.cached += '<b><i style="color: grey">' + new Date().toString() + '</i></b><br>'
             this.history.cached += this.stdout
             this.history.cached += '<br>'

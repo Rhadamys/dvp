@@ -20,8 +20,7 @@
                 <var-data :depth="0" :variable="item.value"></var-data>
             </div>
         </div>
-        <div class="expression-item md-elevation-4"
-            :class="['expression-item-' + item.type, { 'selectable' : item.type === itemTypes.LOGICAL }]" v-else>
+        <div class="expression-item md-elevation-4" :class="'expression-item-' + item.type" v-else>
             {{ item.part }}
             <md-tooltip md-direction="top" v-if="item.type === 'skipped'">{{ item.message }}</md-tooltip>
         </div>

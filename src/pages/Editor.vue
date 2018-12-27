@@ -68,11 +68,6 @@ export default {
                     message: '',
                     dialog: false,
                 },
-                /**
-                 * Al recibir respuesta del servidor es "true" para buscar errores y advertencias
-                 * en la ejecución. Luego es "false" para mentenerlos hasta la siguiente ejecución.
-                 */
-                searching: true,
                 warnings: [],
             },
             expanded: {
@@ -169,7 +164,7 @@ export default {
             // Elimina las excepciones de la ejecución anterior
             this.exceptions.errors = []
             this.exceptions.warnings = []
-            this.exceptions.searching = true // Indica que deben anotarse las excepciones
+            this.running.first = true // Indica que deben anotarse las excepciones
 
             const last = this.trace.length - 1
             this.stepping.current = this.stepping.last = last
@@ -187,7 +182,7 @@ export default {
             steps.forEach(this.renderStep)
             
             // Indica que no deben anotarse nuevas excepciones hasta la próxima ejecución
-            this.exceptions.searching = false
+            this.running.first = false
         },
         /**
          * Renderiza los elementos gráficos del editor para el paso actual. También agrega marcadores
@@ -196,7 +191,7 @@ export default {
          * @param index Número de paso de ejecución
          */
         renderStep: function(step, index) {
-            if(this.exceptions.searching) {
+            if(this.running.first) {
                 if(step.stack_to_render)
                     this.parsed.stack[index] = new Promise(function(resolve, reject) { resolve(Parser.parseStack(step.stack_to_render)) })
                 if(step.conditional || (step.loop && step.loop.conditional)) {
@@ -289,7 +284,7 @@ export default {
                 type: Annotations.WARNING
             })
 
-            if(!this.exceptions.searching) return
+            if(!this.running.first) return
             this.exceptions.warnings.push({
                 step: index,
                 lineno: exception.line,
@@ -311,7 +306,7 @@ export default {
             })
             this.finishRender(exception, index)
 
-            if(!this.exceptions.searching) return
+            if(!this.running.first) return
             this.exceptions.errors.push({
                 step: index,
                 lineno: exception.line,
@@ -353,7 +348,7 @@ export default {
                 this.$root.$emit(Events.SCROLL_EDITOR, step.line)
 
             if(step.stdout === undefined) return
-            this.$root.$emit(Events.UPDATE_CONSOLE, step.stdout)
+            this.$root.$emit(Events.UPDATE_CONSOLE, { first: this.running.first, stdout: step.stdout })
         }
     }
 }

@@ -23,6 +23,7 @@
     </div>
 </template>
 <script>
+import Events from '@/events'
 import Subexpression from './Subexpression'
 
 export default {
