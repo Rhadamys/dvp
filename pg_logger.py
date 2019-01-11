@@ -825,33 +825,41 @@ class PGLogger(bdb.Bdb):
                 index_operator = index + 1
                 index_second = index + 2
 
-                first = eval_part(index_first)
-                if not has_more_parts(index_operator):
-                    return first
+                if(exp[index_first] in UNARY_LOGICALS):
+                    next_part = eval_part(index_operator)
+                    to_eval = '{0}({1})'.format(exp[index_first], next_part)
+                    result = eval(to_eval, self.user_globals, self.user_locals)
+                    del exp[index_operator]
+                    del enc[index_operator]
+                else:
+                    first = eval_part(index_first)
+                    if not has_more_parts(index_operator):
+                        return first
 
-                must_eval = True
-                skipped_base = index_second
-                while(has_more_parts(index_operator)):
-                    if must_eval:
-                        operator = exp[index_operator]
-                        second = eval_part(index_second)
-                        to_eval = '{0} {1} {2}'.format(first, operator, second)
-                        result = eval(to_eval, self.user_globals, self.user_locals)
+                    must_eval = True
+                    skipped_base = index_second
+                    while(has_more_parts(index_operator)):
+                        if must_eval:
+                            operator = exp[index_operator]
+                            second = eval_part(index_second)
+                            to_eval = '{0} {1} {2}'.format(first, operator, second)
+                            result = eval(to_eval, self.user_globals, self.user_locals)
 
-                        next_index_operator = index_operator + 2
-                        if not result and has_more_parts(next_index_operator):
-                            enc[index_operator]['type'] = 'skipped'
-                            enc[index_operator]['message'] = 'No se evaluarán las expresiones a continuación debido a que esta expresión ya es falsa'
-                            must_eval = False
+                            next_index_operator = index_operator + 2
+                            if not result and has_more_parts(next_index_operator):
+                                enc[index_operator]['type'] = 'skipped'
+                                enc[index_operator]['message'] = 'No se evaluarán las expresiones a continuación debido a que esta expresión ya es falsa'
+                                must_eval = False
 
-                        update_trace(copy.deepcopy(encoded), result, tree + str(index_operator))
+                            update_trace(copy.deepcopy(encoded), result, tree + str(index_operator))
 
-                    index_operator = index_operator + 2
-                    index_second = index_second + 2
-                    first = second
-                
-                del exp[index + 1 : index_operator]
-                del enc[index + 1 : index_operator]
+                        index_operator = index_operator + 2
+                        index_second = index_second + 2
+                        first = second
+                    
+                    del exp[index + 1 : index_operator]
+                    del enc[index + 1 : index_operator]
+
                 exp[index_first] = result
                 enc[index_first] = encode_part(result)
                 return result

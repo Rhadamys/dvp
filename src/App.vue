@@ -4,18 +4,22 @@
             <md-button class="md-icon-button" @click="showMenu = !showMenu">
                 <md-icon>menu</md-icon>
             </md-button>
-            <span class="md-title" style="flex: 1">Depurador visual para Python</span>
+            <span class="md-title" style="flex: 1">Depurador Visual para Python</span>
             <md-button class="md-icon-button md-raised md-dense" @click="showMenuTutorial" v-if="bp[$mq] <= bp.xsmall">
                 <md-icon>help</md-icon>
             </md-button>
             <md-button class="md-raised" @click="showMenuTutorial" v-else>
                 <md-icon>help</md-icon>&ensp;Tutorial
             </md-button>
-            <md-button class="md-icon-button md-raised md-dense md-accent" :href="poll.url" target="_blank" v-if="bp[$mq] <= bp.xsmall">
+            <md-button md-theme="default" class="md-icon-button md-raised md-dense md-primary" :href="poll.url" target="_blank" v-if="bp[$mq] <= bp.xsmall">
                 <md-icon>bar_chart</md-icon>
             </md-button>
-            <md-button class="md-raised md-accent" :href="poll.url" target="_blank" v-else>
-                <md-icon>poll</md-icon>&ensp;Encuesta de evaluación
+            <md-button md-theme="default" class="md-raised md-primary" :href="poll.url" target="_blank" v-else>
+                <md-icon>poll</md-icon>&ensp;Tercera
+            </md-button>
+            <br>
+            <md-button class="md-raised md-accent" :href="poll.final" target="_blank" v-if="bp[$mq] > bp.xsmall">
+                <md-icon>poll</md-icon>&ensp;Final
             </md-button>
             <stepper class="stepper stepper-bottom"></stepper>
         </md-app-toolbar>
@@ -266,6 +270,7 @@ export default {
                 tag: 'linea-de-tiempo'
             },
             poll: {
+                final: 'https://goo.gl/forms/18q0QXBZniMkXDFo2',
                 lapse: 180000, // 3 minutos
                 later: false,
                 show: false,
