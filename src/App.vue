@@ -11,16 +11,6 @@
             <md-button class="md-raised" @click="showMenuTutorial" v-else>
                 <md-icon>help</md-icon>&ensp;Tutorial
             </md-button>
-            <md-button md-theme="default" class="md-icon-button md-raised md-dense md-primary" :href="poll.url" target="_blank" v-if="bp[$mq] <= bp.xsmall">
-                <md-icon>bar_chart</md-icon>
-            </md-button>
-            <md-button md-theme="default" class="md-raised md-primary" :href="poll.url" target="_blank" v-else>
-                <md-icon>poll</md-icon>&ensp;Tercera
-            </md-button>
-            <br>
-            <md-button class="md-raised md-accent" :href="poll.final" target="_blank" v-if="bp[$mq] > bp.xsmall">
-                <md-icon>poll</md-icon>&ensp;Final
-            </md-button>
             <stepper class="stepper stepper-bottom"></stepper>
         </md-app-toolbar>
         <md-app-drawer :md-active.sync="showMenu">
@@ -38,7 +28,7 @@
                     </label>
                     <input id="open-file" type="file" style="display: none" @change="loadScriptFromFile" accept=".py"/>
                 </li>
-                <md-list-item id="download-script" @click="showNameDialog = true">
+                <md-list-item id="download-script" @click="isMobile() ? saveFile : showNameDialog = true">
                     <md-icon>save_alt</md-icon>
                     <span class="md-list-item-text">Guardar como...</span>
                 </md-list-item>
@@ -213,40 +203,6 @@
                 md-cancel-text="Cancelar"
                 md-confirm-text="Guardar"
                 @md-confirm="saveFile"/>
-            <md-dialog :md-active.sync="poll.show" @md-clicked-outside="resetTimer" class="list">
-                <md-dialog-title>¡Evalúa las nuevas funcionalidades!</md-dialog-title>
-                <md-dialog-content>
-                    ¡Gracias por utilizar la aplicación! Por favor, contesta esta <u>breve encuesta</u> 
-                    para conocer tu opinión sobre las nuevas funcionalidades. Son cerca de 5 
-                    preguntas, no te tomará más de <u>1 minuto</u>!
-                </md-dialog-content>
-                <md-dialog-actions>
-                    <md-button class="md-primary" @click="dismissPoll(false)" :href="poll.url" target="_blank">Sí</md-button>
-                    <md-button class="md-primary" @click="resetTimer">Quizás más tarde</md-button>
-                    <md-button class="md-primary" @click="dismissPoll(true)">No</md-button>
-                </md-dialog-actions>
-            </md-dialog>
-            <md-dialog-alert
-                :md-active.sync="poll.later"
-                md-title="Oh... No pasa nada! ;)"
-                md-content="Puedes contestar la encuesta en cualquier momento presionando el botón rojo en la <u>esquina superior derecha</u> de la aplicación." />
-            <md-dialog :md-active.sync="news.show">
-                <md-dialog-title>¡Nuevas funcionalidades!</md-dialog-title>
-                <md-dialog-content>
-                    <p>
-                        Ahora puedes ver en qué momento se modifican las variables y cómo varían en el tiempo
-                        gracias a la <u>Línea de Tiempo</u>. Para acceder a ella, presiona el botón (<md-icon>timeline</md-icon>) ubicado
-                        en la esquina superior derecha del panel de variables
-                    </p>
-                    <img src="@/assets/news/tiempo.png" class="md-dialog-image">
-                    <p>
-                        Puedes aprender más sobre la línea de tiempo en el <a @click="showTutorial(8)">tutorial</a>.
-                    </p>
-                </md-dialog-content>
-                <md-dialog-actions>
-                    <md-button class="md-primary" @click="news.show = false">Entendido</md-button>
-                </md-dialog-actions>
-            </md-dialog>
             <md-snackbar class="card-danger" md-position="center" :md-duration="Infinity" :md-active="isOffline" md-theme="default-light" md-persistent>
                 <span><u>Se ha perdido la conexión a internet</u>. Los cambios que realices se enviarán para su ejecución una vez que recuperes la conexión...</span>
             </md-snackbar>
@@ -265,18 +221,6 @@ export default {
         return {
             contactUrl: 'https://goo.gl/forms/RkbI0jGidSP2DWYn1',
             fileName: '',
-            news: {
-                show: false,
-                tag: 'linea-de-tiempo'
-            },
-            poll: {
-                final: 'https://goo.gl/forms/18q0QXBZniMkXDFo2',
-                lapse: 180000, // 3 minutos
-                later: false,
-                show: false,
-                timer: undefined,
-                url: 'https://goo.gl/forms/BrkkapL6ww0d0bhZ2',
-            },
             showNameDialog: false,
             showMenu: false,
             snack: {
@@ -297,26 +241,12 @@ export default {
     },
     created: function() {
         this.$root.$on(Events.SHOW_SNACK, this.showSnack)
-
-        const news = localStorage.getItem('news')
-        if(news !== this.news.tag) {
-            this.news.show = true
-            localStorage.setItem('news', this.news.tag)
-        }
-
-        // Crea un timer para contestar encuesta, si es que no se ha marcado para "ignorarla"
-        const encuesta = localStorage.getItem('encuesta')
-        if(encuesta === this.poll.url) return
-        this.poll.timer = setTimeout(() => {
-            this.poll.show = true
-        }, this.poll.lapse)
     },
     methods: {
-        dismissPoll: function(later) {
-            localStorage.setItem('encuesta', this.poll.url)
-            this.poll.show = false
-            this.poll.later = later
-        },
+        /**
+         * Carga código desde un archivo .py.
+         * @param ev Objeto de evento, que contiene la información del archivo seleccionado.
+         */
         loadScriptFromFile: function(ev) {
             const file = ev.target.files[0]
             const reader = new FileReader()
@@ -325,13 +255,9 @@ export default {
             this.showMenu = false
             document.getElementById('open-file').value = ''
         },
-        resetTimer: function() {
-            clearTimeout(this.poll.timer)
-            this.poll.timer = setTimeout(() => {
-                this.poll.show = true
-            }, this.poll.lapse)
-            this.poll.show = false
-        },
+        /**
+         * Guarda el código del usuario a un archivo local en el dispositivo.
+         */
         saveFile: function() {
             const script = localStorage.getItem('script')
             const blob = new Blob([script], { type: 'text/plain' })
@@ -341,16 +267,29 @@ export default {
             a.click()
             this.fileName = ''
         },
+        /**
+         * Abre el menú lateral para mostrar las opciones del tutorial al usuario.
+         */
         showMenuTutorial: function() {
             this.tutorial.expanded = true
             this.showMenu = true
         },
+        /**
+         * Muestra un mensaje en un Snack en la parte inferior de la pantalla.
+         * @param className Clase del snack, para colorear ya sea error, advertencia, etc.
+         * @param duration Tiempo que debe mostrarse el mensaje.
+         * @param message Mensaje para mostrar en el snack.
+         */
         showSnack: function({ className, duration, message }) {
             this.snack.className = className
             this.snack.duration = duration
             this.snack.message = message
             this.snack.show = true
         },
+        /**
+         * Muestra el tutorial partiendo en el paso que se indique.
+         * @param step Paso para iniciar el tutorial.
+         */
         showTutorial: function(step) {
             this.tutorial.step = step
             this.tutorial.show = true

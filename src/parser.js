@@ -17,6 +17,13 @@ const VARIABLE_SCALE_COLORS = {
 }
 
 export default {
+    /**
+     * Determina el color que debe tener una caja de variable.
+     * @param scale Escala de valores por tipo de dato.
+     * @param type Tipo de dato de la variable que se evalúa.
+     * @param factor Factor de la variable dentro de la escala actual.
+     * @returns Cógido hexadecimal del color que tendrá la caja.
+     */
     color: function(scale, type, factor) {
         if(type === VarTypes.BOOLEAN || type === VarTypes.FUNCTION || type === VarTypes.OBJECT)
             return VARIABLE_SCALE_COLORS[type]
@@ -30,6 +37,12 @@ export default {
         const index = Math.floor(current * 9 / upper)
         return VARIABLE_SCALE_COLORS[type][index]
     },
+    /**
+     * Determina el factor de una variable. El factor es como el peso que tiene el valor
+     * de la variable. Utilizado para la escala por tipos de dato.
+     * @param variable Variable que se evaluará.
+     * @returns Factor de la variable evaluada. 
+     */
     factor: function(variable) {
         switch(variable.type) {
             case VarTypes.CHAR: return variable.value.charCodeAt(0)
@@ -60,6 +73,12 @@ export default {
             default: return 1
         }
     },
+    /**
+     * Formato alternativo para valores numéricos. Por ejemplo, los decimales aparecerán
+     * con comas y puntos utilizando la notación nacional en lugar de la americana.
+     * @param value Valor numérico que se dará formato.
+     * @return Valor formateado.
+     */
     formatNumber: function(value) {
         value = value.toString()
         if(!value.includes('.')) return undefined
@@ -73,6 +92,11 @@ export default {
             formatted += '.' + number.substr(i * base, 3)
         return parts.length === 2 ? formatted + ',' + parts[1] : formatted
     },
+    /**
+     * Indica el icono que debe mostrar una caja de variable de acuerdo a su tipo de dato.
+     * @param type Tipo de dato la variable.
+     * @return Icono en formato string para renderizar en el front.
+     */
     icon: function(type) {
         switch(type) {
             case VarTypes.DICT: return '{ }'
@@ -83,6 +107,11 @@ export default {
             default: return undefined
         }
     },
+    /**
+     * Esta función busca variables dentro de una subexpresión en una expresión condicional.
+     * Se llama desde parseConditional.
+     * @param bracket Subexpresión que se evaluará.
+     */
     parseBracket: function(bracket) {
         bracket.forEach(part => {
             if(typeof part === 'object') {
@@ -95,12 +124,23 @@ export default {
                 this.parseBracket(part)
         })
     },
+    /**
+     * Esta función busca variables dentro de una expresión condicional para darles el formato
+     * correcto para mostrarlas en el front.
+     * @param conditional Expresión condicional que se formaterá.
+     * @returns Expresión condicional formateada.
+     */
     parseConditional: function(conditional) {
         conditional.trace.forEach(step => {
             this.parseBracket(step.expression)
         })
         return conditional
     },
+    /**
+     * Esta función le da formato a una subexpresión como, por ejemplo, a == 2. Es el último
+     * paso luego de llamar a parseConditional y parseBracket.
+     * @param part Parte a la cual se evaluará si debe darse formato.
+     */
     parsePart: function(part) {
         for(let key in part) {
             if(typeof part[key] === 'object') {
@@ -113,6 +153,11 @@ export default {
                 this.parseBracket(part[key])
         }
     },
+    /**
+     * Esta función le da formato a todas las variables dentro de una stack.
+     * @param stack_to_render Stack al cual se le dará formato
+     * @returns Stack con variables formateadas.
+     */
     parseStack: function(stack_to_render) {
         const temp_stack = { order: [], scopes: {} }
         stack_to_render.ordered_scopes.forEach(scope_name => {
@@ -159,6 +204,13 @@ export default {
         temp_stack.order = stack_to_render.ordered_scopes
         return temp_stack
     },
+    /**
+     * Esta función le da formato a las variables. Es el paso final de parseConditional
+     * y parseStack. El formato consiste en agregar campos que son requeridos por el front,
+     * y convertir el valor de otras propiedades.
+     * @param variable Variable a la que se le dará formato.
+     * @return Variable formateada.
+     */
     parseVariable: function(variable) {
         let value = variable['value']
         const type = this.type(value)
@@ -211,6 +263,13 @@ export default {
         variable['value'] = value
         return variable
     },
+    /**
+     * Actualiza una escala de factores de acuerdo al tipo de dato de una
+     * variable y al valor de la misma.
+     * @param scale Escala de factores de variable.
+     * @param variable Variable con la cual se actualizará la escala.
+     * @return Escala de factores actualizada.
+     */
     scale: function(scale, variable) {
         if(variable.type === VarTypes.BOOLEAN || 
             variable.type === VarTypes.FUNCTION || 
@@ -228,6 +287,12 @@ export default {
         }
         return factor
     },
+    /**
+     * Transforma el tipo de dato indicado por el backend a un tipo de dato
+     * válido para el frontend.
+     * @param variable Variable para la cual se determinará el tipo de dato.
+     * @return Tipo de dato, en formato string.
+     */
     type: function(variable) {
         if(Array.isArray(variable)) {
             const ref_type = variable[0]
