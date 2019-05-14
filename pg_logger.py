@@ -1684,13 +1684,11 @@ class PGLogger(bdb.Bdb):
                     last_hash = scope['ordered_hashes'][-1]
                     if not current_hash in scope['ordered_hashes']:
                         current_scope = self.check_variable_value_changes(self.null_scope, current_scope)
-                        current_scope['start'] = len(self.trace)
                         scope[current_hash] = current_scope
                         scope['ordered_hashes'].append(current_hash)
                         if len(scope) > MAX_RECURSIVE_CALLS:
                             recursion_overflow = True
                     elif current_hash == last_hash:
-                        current_scope['start'] = scope[last_hash]['start']
                         current_scope = self.check_variable_value_changes(scope[last_hash], current_scope)
                         if '__return__' in current_scope['ordered_varnames']:
                             current_scope['returned'] = current_scope['encoded_vars']['__return__']
@@ -1703,7 +1701,6 @@ class PGLogger(bdb.Bdb):
                         scope[current_hash] = self.check_variable_value_changes(scope[current_hash], current_scope)
                 else:
                     current_scope = self.check_variable_value_changes(self.null_scope, current_scope)
-                    current_scope['start'] = len(self.trace)
                     scope = { current_hash: current_scope, 'ordered_hashes': [current_hash] }
                     prev_stack_format['ordered_scopes'] = prev_stack_format['ordered_scopes'] + [current_scope_name]
 

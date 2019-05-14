@@ -62,7 +62,7 @@ export default {
     created: function() {
         this.$root.$on(Events.UPDATE_CONSOLE, this.update)
         this.$root.$on(Events.PROMPT_INPUT, (raw_input) => {
-            this.input.request = raw_input.prompt
+            this.input.request = raw_input.prompt || ' '
             
             if(this.input.array.length === 0) return
             // Centra la entrada en el input, si ya se han ingresado datos antes

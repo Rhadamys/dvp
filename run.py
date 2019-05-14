@@ -18,7 +18,7 @@ class TimeOutException(Exception):
 def request_trace():
     data = request.get_json(force=True)
     try:
-        trace = generate_trace(data)
+        trace = __generate_trace(data)
     except TimeOutException:
         exception = dict(event='instruction_limit_reached',
                          exception_msg='''Tu programa ha estado operando por <u>más de {0} segundos</u>
@@ -42,7 +42,7 @@ def catch_all(path):
 
 # Si generar la traza toma más de MAX_TIME_RUNNING entonces se cancela la operación
 @timeout(MAX_TIME_RUNNING, use_signals=False, timeout_exception=TimeOutException)
-def generate_trace(data):
+def __generate_trace(data):
     user_script = data['script']
     raw_input_json = data['raw_input_json'] if 'raw_input_json' in data else None
     trace = pg_logger.exec_script_str_local(user_script, raw_input_json, False, False)
