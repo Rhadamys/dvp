@@ -3,6 +3,7 @@ export default {
     CHAR: 'char',
     DICT: 'dict',
     FLOAT: 'float',
+    SPECIAL_FLOAT: 'float',
     FUNCTION: 'function',
     LIST: 'list',
     LIST_OF_LISTS: 'listoflists',

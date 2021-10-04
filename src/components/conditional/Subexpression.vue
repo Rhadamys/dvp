@@ -16,7 +16,7 @@
                 <span>{{ item.part }}</span>
                 <md-tooltip md-direction="top">{{ item.part }}</md-tooltip>
             </div>
-            <div class="conditional-variable-value" :class="[item.value.type, item.value.bool, { 'conditional-variable-value-full': item.part === '' }]">
+            <div class="conditional-variable-value" :class="[item.value.type, item.value.class, { 'conditional-variable-value-full': item.part === '' }]">
                 <var-data :depth="0" :variable="item.value"></var-data>
             </div>
         </div>

@@ -41,7 +41,6 @@ Vue.prototype.$http = axios.create({
 import VarData from '@/components/trace/variable/VarData'
 Vue.component('var-data', VarData)
 
-import Const from '@/const'
 Vue.mixin({
     data: function() {
         return {

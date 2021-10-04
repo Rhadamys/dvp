@@ -23,12 +23,12 @@
                     </td>
                     <td class="timeline-variable timeline-returned-cell">
                         <div class="timeline-variable-value selectable md-elevation-4"
-                            :class="scope.returned.bool" 
+                            :class="scope.returned.class" 
                             :style="'background-color: ' + scope.returned.color"
                             @mouseover="$emit('highlight', scope.returned.line)"
                             @mouseout="$emit('reset')"
                             @click="$emit('show', { varname: id, index: -1 })">
-                            <span v-html="scope.returned.icon || scope.returned.value"></span>
+                            <span v-html="scope.returned.icon || scope.returned.lang"></span>
                         </div>
                     </td>
                     <td v-for="i in range.slice(1)" :key="i" class="timeline-variable"></td>
@@ -41,22 +41,22 @@
                                 <md-tooltip md-direction="top">{{ varname }}</md-tooltip>
                             </span>
                             <div class="timeline-var-header-value timeline-variable-value selectable md-elevation-4"
-                                :class="current[varname].bool" :style="'background-color: ' + current[varname].color"
+                                :class="current[varname].class" :style="'background-color: ' + current[varname].color"
                                 @mouseover="$emit('highlight', current[varname].line)"
                                 @mouseout="$emit('reset')"
                                 @click="$emit('show', { varname, index: 0 })">
-                                <span v-html="current[varname].icon || current[varname].value"></span>
+                                <span v-html="current[varname].icon || current[varname].lang"></span>
                             </div>
                         </div>
                     </td>
                     <td v-for="(step, i) in values" :key="i" class="timeline-variable"
                         :class="{ 'timeline-returned-cell': 'returned' in scope && i === 0 }">
                         <div class="timeline-variable-value selectable md-elevation-4" v-if="step"
-                            :class="step.bool" :style="'background-color: ' + step.color"
+                            :class="step.class" :style="'background-color: ' + step.color"
                             @mouseover="$emit('highlight', step.line)"
                             @mouseout="$emit('reset')"
                             @click="$emit('show', { varname, index: step.index })">
-                            <span v-html="step.icon || step.value"></span>
+                            <span v-html="step.icon || step.lang"></span>
                         </div>
                     </td>
                 </tr>

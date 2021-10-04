@@ -12,9 +12,9 @@
                     <span>{{ current.step }}</span>
                 </div>
                 <div class="variable-values-box-value variable-values-current selectable"
-                    :class="current.bool" :style="'background-color: ' + current.color"
+                    :class="current.class" :style="'background-color: ' + current.color"
                     @click="$emit('show', { varname, index: 0 })"
-                    v-html="current.icon || current.value">
+                    v-html="current.icon || current.lang">
                 </div>
             </div>
             <div v-if="prevals" class="variable-values">
@@ -31,9 +31,9 @@
                         <span>{{ prev.step }}</span>
                     </div>
                     <div class="variable-values-box-value variable-values-prev selectable"
-                        :class="prev.bool" :style="'background-color: ' + prev.color"
+                        :class="prev.class" :style="'background-color: ' + prev.color"
                         @click="$emit('show', { varname, index: index + prevalsRange.start + 1 })"
-                        v-html="prev.icon || prev.value">
+                        v-html="prev.icon || prev.lang">
                     </div>
                 </div>
                 <md-button class="md-icon-button md-raised md-dense"
@@ -47,8 +47,6 @@
     </md-content>
 </template>
 <script>
-import Events from '@/events'
-
 export default {
     props: ['current', 'prevals', 'varname'],
     data: function() {

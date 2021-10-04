@@ -69,28 +69,16 @@ export default {
             }
             case VarTypes.NUMBER:
             case VarTypes.FLOAT:
-                return variable.value
+                switch (variable.value) {
+                    case Infinity:
+                        return Number.MAX_VALUE
+                    case -Infinity:
+                        return Number.MIN_VALUE
+                    default:
+                        return variable.value
+                }
             default: return 1
         }
-    },
-    /**
-     * Formato alternativo para valores numéricos. Por ejemplo, los decimales aparecerán
-     * con comas y puntos utilizando la notación nacional en lugar de la americana.
-     * @param value Valor numérico que se dará formato.
-     * @return Valor formateado.
-     */
-    formatNumber: function(value) {
-        value = value.toString()
-        if(!value.includes('.')) return undefined
-        
-        const parts = value.split('.')
-        const number = parts[0]
-        const base = number.length % 3 || 3
-        const steps = Math.floor(number.length / 3) + (base === 3 ? 0 : 1)
-        let formatted = number.substr(0, base)
-        for(let i = 1; i < steps; i ++)
-            formatted += '.' + number.substr(i * base, 3)
-        return parts.length === 2 ? formatted + ',' + parts[1] : formatted
     },
     /**
      * Indica el icono que debe mostrar una caja de variable de acuerdo a su tipo de dato.
@@ -213,6 +201,8 @@ export default {
      */
     parseVariable: function(variable) {
         let value = variable['value']
+        let lang = undefined
+        let alternative = undefined
         const type = this.type(value)
         variable['type'] = type
 
@@ -220,8 +210,8 @@ export default {
         if(icon) variable['icon'] = icon
 
         if(type === VarTypes.BOOLEAN) {
-            variable['bool'] = value.toString()
-            value = value ? 'True' : 'False'
+            lang = value ? 'True' : 'False'
+            variable['class'] = value.toString()
         } else if(type === VarTypes.CHAR) {
             if(value === ' ') variable['parsed'] = 'Espacio (\\s)'
             else if(value === '\n') variable['parsed'] = 'Salto de línea (\\n)'
@@ -235,9 +225,11 @@ export default {
                 temp[value[i][0]] = parsed
             }
             value = temp
-        } else if(type === VarTypes.FLOAT || type === VarTypes.NUMBER) {
-            value = Number(value[1] || value)
-            variable['alternative'] = this.formatNumber(value)
+        } else if(type === VarTypes.NUMBER) {
+            value = Number(value)
+        } else if(type === VarTypes.FLOAT) {
+            lang = value[1] || value
+            value = Number(lang)
         } else if(type === VarTypes.FUNCTION) {
             const params = value[1].replace('(', ',').replace(')', '').replace(/\s/g, '').split(',')
             const name = params.shift()
@@ -251,16 +243,18 @@ export default {
             }
             value = temp
         } else if(type === VarTypes.STRING) {
-            const alternative = []
+            alternative = []
             for(let i = 0; i < value.length; i++) {
                 const elmvar = { value: value[i] }
                 const parsed = this.parseVariable(elmvar)
                 alternative.push(parsed)
             }
-            variable['alternative'] = alternative
             variable['parsed'] = value.replace(/\b\n\b/g, '<br>')
         }
+
         variable['value'] = value
+        variable['lang'] = lang || value
+        variable['alternative'] = alternative
         return variable
     },
     /**
@@ -302,7 +296,9 @@ export default {
                 case 'LIST': return VarTypes.LIST
                 case 'LIST_OF_LISTS': return VarTypes.LIST_OF_LISTS
                 case 'MATRIX': return VarTypes.MATRIX
-                case 'SPECIAL_FLOAT': return VarTypes.FLOAT
+                case 'FLOAT':
+                case 'SPECIAL_FLOAT': 
+                    return VarTypes.FLOAT
             }
         }
         
